@@ -323,14 +323,38 @@ button.danger {
 
 /* Forms */
 .entry-form {
-  max-width: 640px;
+  max-width: 860px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px 28px;
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 24px;
+  align-items: start;
+}
+
+.entry-form-main {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
+}
+
+.entry-form-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 760px) {
+  .entry-form {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-form-side {
+    order: -1;
+  }
 }
 
 .entry-detail {
@@ -391,15 +415,17 @@ button.danger {
   cursor: pointer;
 }
 
+/* Sidebar column, so the preview and controls stack full-width rather than side-by-side. */
 .cover-art-field .cover-preview {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .cover-art-field .cover-preview img {
-  width: 80px;
-  height: 120px;
+  width: 100%;
+  aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -407,8 +433,8 @@ button.danger {
 }
 
 .cover-art-field .cover-preview.empty {
-  width: 80px;
-  height: 120px;
+  width: 100%;
+  aspect-ratio: 2 / 3;
   border: 1px dashed var(--border);
   border-radius: 8px;
   display: flex;
@@ -427,7 +453,7 @@ button.danger {
   border-radius: 8px;
   padding: 7px 12px;
   cursor: pointer;
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 .cover-art-actions {
@@ -438,7 +464,7 @@ button.danger {
 }
 
 .cover-art-actions > button {
-  align-self: flex-start;
+  align-self: stretch;
   border: 1px solid var(--border);
   background: var(--chip-bg);
   color: var(--text);
@@ -449,11 +475,11 @@ button.danger {
 
 .cover-url-row {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
 .cover-url-row input {
-  flex: 1;
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);

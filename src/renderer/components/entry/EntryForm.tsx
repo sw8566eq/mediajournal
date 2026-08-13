@@ -85,72 +85,80 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
 
   return (
     <form className="entry-form" onSubmit={handleSubmit}>
-      <h2>{initialValues ? 'Edit Entry' : 'Add Entry'}</h2>
-      {error && <div className="error-banner">{error}</div>}
+      <div className="entry-form-main">
+        <h2>{initialValues ? 'Edit Entry' : 'Add Entry'}</h2>
+        {error && <div className="error-banner">{error}</div>}
 
-      <label className="field">
-        <span>Title</span>
-        <input type="text" required value={values.title} onChange={(e) => set('title', e.target.value)} />
-      </label>
+        <label className="field">
+          <span>Title</span>
+          <input type="text" required value={values.title} onChange={(e) => set('title', e.target.value)} />
+        </label>
 
-      <TypeSpecificFields
-        mediaType={mediaType}
-        values={values}
-        variant="primary"
-        onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
-      />
-
-      <RatingInput valueTenths={values.ratingTenths} onChange={(v) => set('ratingTenths', v)} />
-
-      <CoverArtField
-        value={values.coverPath}
-        onChange={(filename) => set('coverPath', filename)}
-        onImported={(filename) => sessionImportedFiles.current.push(filename)}
-      />
-
-      <label className="field">
-        <span>Notes</span>
-        <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
-      </label>
-
-      <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
-
-      <MoreFieldsSection>
         <TypeSpecificFields
           mediaType={mediaType}
           values={values}
-          variant="secondary"
+          variant="primary"
           onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
         />
 
-        <label className="field">
-          <span>Genre</span>
-          <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
-        </label>
-
-        <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
+        <RatingInput valueTenths={values.ratingTenths} onChange={(v) => set('ratingTenths', v)} />
 
         <label className="field">
-          <span>Start Date</span>
-          <input type="date" value={values.startDate ?? ''} onChange={(e) => set('startDate', e.target.value || null)} />
+          <span>Notes</span>
+          <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
         </label>
-        <label className="field">
-          <span>Finish Date</span>
-          <input
-            type="date"
-            value={values.finishDate ?? ''}
-            onChange={(e) => set('finishDate', e.target.value || null)}
+
+        <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
+
+        <MoreFieldsSection>
+          <TypeSpecificFields
+            mediaType={mediaType}
+            values={values}
+            variant="secondary"
+            onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
           />
-        </label>
-      </MoreFieldsSection>
 
-      <div className="form-actions">
-        <button type="button" onClick={handleCancel} disabled={saving}>
-          Cancel
-        </button>
-        <button type="submit" className="primary" disabled={saving}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+          <label className="field">
+            <span>Genre</span>
+            <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
+          </label>
+
+          <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
+
+          <label className="field">
+            <span>Start Date</span>
+            <input
+              type="date"
+              value={values.startDate ?? ''}
+              onChange={(e) => set('startDate', e.target.value || null)}
+            />
+          </label>
+          <label className="field">
+            <span>Finish Date</span>
+            <input
+              type="date"
+              value={values.finishDate ?? ''}
+              onChange={(e) => set('finishDate', e.target.value || null)}
+            />
+          </label>
+        </MoreFieldsSection>
+
+        <div className="form-actions">
+          <button type="button" onClick={handleCancel} disabled={saving}>
+            Cancel
+          </button>
+          <button type="submit" className="primary" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div className="entry-form-side">
+        <CoverArtField
+          value={values.coverPath}
+          onChange={(filename) => set('coverPath', filename)}
+          onImported={(filename) => sessionImportedFiles.current.push(filename)}
+        />
       </div>
     </form>
   );
