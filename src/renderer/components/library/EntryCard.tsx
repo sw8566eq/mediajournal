@@ -1,14 +1,16 @@
 import type { MediaType, Tag } from '@shared/types';
-import { PRIMARY_FIELD, STATUS_LABELS } from '../../mediaTypeConfig';
+import { MEDIA_TYPE_LABELS, PRIMARY_FIELD, STATUS_LABELS } from '../../mediaTypeConfig';
 import { coverUrl } from '../../coverUrl';
 
 interface Props {
   mediaType: MediaType;
   entry: Record<string, unknown>;
   onClick: () => void;
+  /** Shows a small media-type pill (e.g. "Books") - used in the combined "All" view where cards mix types. */
+  showTypeBadge?: boolean;
 }
 
-export function EntryCard({ mediaType, entry, onClick }: Props) {
+export function EntryCard({ mediaType, entry, onClick, showTypeBadge }: Props) {
   const rating = entry.ratingTenths as number | null;
   const primaryValue = entry[PRIMARY_FIELD[mediaType]] as string | null;
   const tags = (entry.tags as Tag[] | undefined) ?? [];
@@ -25,6 +27,7 @@ export function EntryCard({ mediaType, entry, onClick }: Props) {
       <div className="entry-card-title">{entry.title as string}</div>
       <div className="entry-card-subtitle">{[primaryValue, entry.year].filter(Boolean).join(' · ') || '—'}</div>
       <div className="entry-card-meta">
+        {showTypeBadge && <span className="pill type-badge">{MEDIA_TYPE_LABELS[mediaType]}</span>}
         {entry.genre ? <span className="pill">{entry.genre as string}</span> : null}
         {status && <span className={`pill status-${status}`}>{STATUS_LABELS[status]}</span>}
         {rating !== null && <span className="pill rating">{(rating / 10).toFixed(1)}/10</span>}

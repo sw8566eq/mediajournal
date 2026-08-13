@@ -7,7 +7,7 @@ import { FilterSortBar } from './FilterSortBar';
 interface Props {
   mediaType: MediaType;
   allTags: Tag[];
-  onSelectEntry: (id: number) => void;
+  onSelectEntry: (mediaType: MediaType, id: number) => void;
   onAddClick: () => void;
   /** Bumped by the parent after a save/delete elsewhere so this view refetches. */
   refreshKey: number;
@@ -49,7 +49,12 @@ export function LibraryView({ mediaType, allTags, onSelectEntry, onAddClick, ref
         {entries.map((entry) => {
           const e = entry as unknown as Record<string, unknown>;
           return (
-            <EntryCard key={e.id as number} mediaType={mediaType} entry={e} onClick={() => onSelectEntry(e.id as number)} />
+            <EntryCard
+              key={e.id as number}
+              mediaType={mediaType}
+              entry={e}
+              onClick={() => onSelectEntry(mediaType, e.id as number)}
+            />
           );
         })}
       </div>

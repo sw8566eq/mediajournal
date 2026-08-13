@@ -278,6 +278,12 @@ button.danger {
   color: #cf9a1e;
 }
 
+.pill.type-badge {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
 .tag-list {
   display: flex;
   gap: 6px;

@@ -1,17 +1,20 @@
-import type { EntryFilters, EntryStatus, Tag } from '@shared/types';
-import { STATUS_LABELS } from '../../mediaTypeConfig';
+import type { EntryFilters, EntryStatus, MediaType, Tag } from '@shared/types';
+import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER, STATUS_LABELS } from '../../mediaTypeConfig';
 
 interface Props {
   filters: EntryFilters;
   onChange: (filters: EntryFilters) => void;
   availableGenres: string[];
   availableTags: Tag[];
-  onAddClick: () => void;
+  /** Omit to hide the "+ Add Entry" button - e.g. the combined "All" view, where there's no single type to create. */
+  onAddClick?: () => void;
+  /** Only passed by the "All" view: which media types to include in the combined list. */
+  mediaTypeFilter?: { activeTypes: MediaType[]; onToggle: (type: MediaType) => void };
 }
 
 const STATUS_VALUES = Object.keys(STATUS_LABELS) as EntryStatus[];
 
-export function FilterSortBar({ filters, onChange, availableGenres, availableTags, onAddClick }: Props) {
+export function FilterSortBar({ filters, onChange, availableGenres, availableTags, onAddClick, mediaTypeFilter }: Props) {
   // Exclusive: an entry can only actually have one status, so clicking a chip selects just that
   // one (clicking the already-active one clears the filter back to "any status").
   function selectStatus(status: EntryStatus) {
@@ -34,6 +37,21 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
         value={filters.search ?? ''}
         onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
       />
+
+      {mediaTypeFilter && (
+        <div className="filter-group">
+          {MEDIA_TYPE_ORDER.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={mediaTypeFilter.activeTypes.includes(type) ? 'chip active' : 'chip'}
+              onClick={() => mediaTypeFilter.onToggle(type)}
+            >
+              {MEDIA_TYPE_LABELS[type]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="filter-group">
         {STATUS_VALUES.map((status) => (
@@ -121,9 +139,11 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
         {filters.sortDir === 'desc' ? '↓' : '↑'}
       </button>
 
-      <button type="button" className="primary add-entry-btn" onClick={onAddClick}>
-        + Add Entry
-      </button>
+      {onAddClick && (
+        <button type="button" className="primary add-entry-btn" onClick={onAddClick}>
+          + Add Entry
+        </button>
+      )}
     </div>
   );
 }

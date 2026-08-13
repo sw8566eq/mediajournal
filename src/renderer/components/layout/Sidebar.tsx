@@ -2,8 +2,8 @@ import type { MediaType } from '@shared/types';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 
 interface Props {
-  active: MediaType | 'settings';
-  onSelect: (type: MediaType) => void;
+  active: MediaType | 'all' | 'settings';
+  onSelect: (type: MediaType | 'all') => void;
   onSelectSettings: () => void;
 }
 
@@ -12,6 +12,11 @@ export function Sidebar({ active, onSelect, onSelectSettings }: Props) {
     <nav className="sidebar">
       <div className="sidebar-title">Media Journal</div>
       <ul>
+        <li>
+          <button type="button" className={active === 'all' ? 'nav-item active' : 'nav-item'} onClick={() => onSelect('all')}>
+            All
+          </button>
+        </li>
         {MEDIA_TYPE_ORDER.map((type) => (
           <li key={type}>
             <button

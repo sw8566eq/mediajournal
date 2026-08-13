@@ -30,6 +30,23 @@ const SORT_COLUMN: Record<NonNullable<EntryFilters['sortBy']>, string> = {
   createdAt: 'created_at',
 };
 
+/**
+ * Builds an FTS5 MATCH query for a free-text search box: each whitespace-separated word becomes
+ * a quoted, escaped prefix match (`"word"*`), ANDed together (FTS5's default between bareword
+ * match expressions). This keeps the "partial word while typing" feel of the old LIKE-based
+ * search while gaining real word-boundary matching. Quoting every token means arbitrary user
+ * input (including FTS5 query-syntax characters like `"`/`*`/`:`/`-`) can never produce a MATCH
+ * syntax error - `"` is escaped by doubling it, same as SQL string literals.
+ */
+function toFtsQuery(raw: string): string {
+  return raw
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => `"${word.replace(/"/g, '""')}"*`)
+    .join(' ');
+}
+
 export interface MediaRepositoryConfig<T extends MediaType> {
   mediaType: T;
   table: string;
@@ -116,9 +133,11 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
       params.push(filters.dateTo);
     }
     if (filters.search) {
-      clauses.push('(title LIKE ? OR notes LIKE ?)');
-      const term = `%${filters.search}%`;
-      params.push(term, term);
+      const ftsQuery = toFtsQuery(filters.search);
+      if (ftsQuery) {
+        clauses.push(`${table}.id IN (SELECT rowid FROM ${table}_fts WHERE ${table}_fts MATCH ?)`);
+        params.push(ftsQuery);
+      }
     }
     if (filters.tagIds?.length) {
       // Entries must have ALL of the given tags: one EXISTS clause per tag id.
