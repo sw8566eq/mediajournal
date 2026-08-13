@@ -40,6 +40,10 @@ const api: MediaJournalAPI = {
     search: (mediaType: MediaType, query: string) =>
       ipcRenderer.invoke(IPC.externalSearch.search, { mediaType, query }),
   },
+  backup: {
+    exportLibrary: () => ipcRenderer.invoke(IPC.backup.export),
+    importLibrary: () => ipcRenderer.invoke(IPC.backup.import),
+  },
 };
 
 contextBridge.exposeInMainWorld('mediaJournalAPI', api);

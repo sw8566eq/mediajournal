@@ -164,6 +164,16 @@ export interface ExternalSearchAPI {
   search: (mediaType: MediaType, query: string) => Promise<ExternalSearchResponse>;
 }
 
+/** Count of rows processed per media type (plus tags) by an import. */
+export type ImportSummary = Record<MediaType, number> & { tags: number };
+
+export interface BackupAPI {
+  /** Opens a save dialog and writes the whole library (metadata only, no cover art) to a JSON file. Returns the chosen path, or null if canceled. */
+  exportLibrary: () => Promise<string | null>;
+  /** Opens an open-file dialog and merges a previously-exported JSON file into the library - always adds new rows, never deletes or overwrites existing data. Returns null if canceled. */
+  importLibrary: () => Promise<ImportSummary | null>;
+}
+
 export interface MediaJournalAPI {
   movie: MediaTypeAPI<'movie'>;
   tv: MediaTypeAPI<'tv'>;
@@ -173,4 +183,5 @@ export interface MediaJournalAPI {
   tags: TagAPI;
   covers: CoverAPI;
   externalSearch: ExternalSearchAPI;
+  backup: BackupAPI;
 }

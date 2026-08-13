@@ -5,10 +5,15 @@ import { LibraryView } from './components/library/LibraryView';
 import { EntryForm, type EntryFormValues } from './components/entry/EntryForm';
 import { EntryDetail } from './components/entry/EntryDetail';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
+import { SettingsView } from './components/settings/SettingsView';
 import { useTags } from './hooks/useTags';
 import { api } from './api/client';
 
-type View = { name: 'library' } | { name: 'form'; entryId: number | null } | { name: 'detail'; entryId: number };
+type View =
+  | { name: 'library' }
+  | { name: 'form'; entryId: number | null }
+  | { name: 'detail'; entryId: number }
+  | { name: 'settings' };
 
 export default function App() {
   const [mediaType, setMediaType] = useState<MediaType>('movie');
@@ -17,7 +22,7 @@ export default function App() {
   const [detailEntry, setDetailEntry] = useState<Record<string, unknown> | null>(null);
   const [formInitial, setFormInitial] = useState<Partial<EntryFormValues> | undefined>(undefined);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const { tags, createTag } = useTags();
+  const { tags, createTag, refetch: refetchTags } = useTags();
 
   function selectMediaType(type: MediaType) {
     setMediaType(type);
@@ -71,8 +76,13 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar active={mediaType} onSelect={selectMediaType} />
+      <Sidebar
+        active={view.name === 'settings' ? 'settings' : mediaType}
+        onSelect={selectMediaType}
+        onSelectSettings={() => setView({ name: 'settings' })}
+      />
       <main className="app-content">
+        {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
         {view.name === 'library' && (
           <LibraryView
             mediaType={mediaType}

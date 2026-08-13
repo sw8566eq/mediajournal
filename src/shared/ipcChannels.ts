@@ -30,6 +30,10 @@ export const IPC = {
   externalSearch: {
     search: 'externalSearch:search',
   },
+  backup: {
+    export: 'backup:export',
+    import: 'backup:import',
+  },
 } as const;
 
 /** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */

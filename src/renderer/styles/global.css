@@ -56,6 +56,8 @@ body {
   background: var(--bg-elevated);
   border-right: 1px solid var(--border);
   padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-title {
@@ -93,6 +95,12 @@ body {
   background: var(--accent);
   color: var(--accent-text);
   font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .app-content {
@@ -311,6 +319,49 @@ button.danger {
   border-radius: 8px;
   margin-bottom: 12px;
   font-size: 13px;
+}
+
+.success-banner {
+  background: rgba(62, 154, 79, 0.12);
+  border: 1px solid #3e9a4f;
+  color: #3e9a4f;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.settings-view {
+  max-width: 640px;
+}
+
+.settings-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-top: 16px;
+}
+
+.settings-section h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-actions button {
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 /* Forms */

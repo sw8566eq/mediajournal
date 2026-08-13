@@ -105,3 +105,30 @@ export const ExternalSearchQuerySchema = z.object({
   mediaType: z.enum(MEDIA_TYPES),
   query: z.string().trim().min(1).max(300),
 });
+
+// Export/import shape: same per-type create schema, but tagIds (only meaningful within the source
+// database) is replaced with tag *names* (portable across databases), and coverPath is dropped -
+// exports are metadata-only, so an imported entry should never carry a filename reference to an
+// image that doesn't exist on the importing machine.
+const exportTags = { tags: z.array(z.string()).default([]) };
+
+export const ExportedEntrySchemaByType = {
+  movie: MovieCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
+  tv: TvShowCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
+  book: BookCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
+  album: AlbumCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
+  game: GameCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
+} satisfies Record<MediaType, z.ZodTypeAny>;
+
+export const ExportFileSchema = z.object({
+  exportedAt: z.string(),
+  schemaVersion: z.number().int().optional(),
+  tags: z.array(z.string()).default([]),
+  entries: z.object({
+    movie: z.array(ExportedEntrySchemaByType.movie).default([]),
+    tv: z.array(ExportedEntrySchemaByType.tv).default([]),
+    book: z.array(ExportedEntrySchemaByType.book).default([]),
+    album: z.array(ExportedEntrySchemaByType.album).default([]),
+    game: z.array(ExportedEntrySchemaByType.game).default([]),
+  }),
+});
