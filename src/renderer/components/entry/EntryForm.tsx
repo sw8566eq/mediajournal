@@ -108,6 +108,13 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
         onImported={(filename) => sessionImportedFiles.current.push(filename)}
       />
 
+      <label className="field">
+        <span>Notes</span>
+        <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
+      </label>
+
+      <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
+
       <MoreFieldsSection>
         <TypeSpecificFields
           mediaType={mediaType}
@@ -135,13 +142,6 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
             onChange={(e) => set('finishDate', e.target.value || null)}
           />
         </label>
-
-        <label className="field">
-          <span>Notes</span>
-          <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
-        </label>
-
-        <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
       </MoreFieldsSection>
 
       <div className="form-actions">

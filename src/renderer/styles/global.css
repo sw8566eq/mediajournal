@@ -322,8 +322,7 @@ button.danger {
 }
 
 /* Forms */
-.entry-form,
-.entry-detail {
+.entry-form {
   max-width: 640px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -332,6 +331,17 @@ button.danger {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.entry-detail {
+  max-width: 980px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .field {
@@ -460,17 +470,43 @@ button.danger {
   cursor: pointer;
 }
 
-.entry-detail-cover {
-  width: 160px;
+/* 3-pane detail layout: metadata | notes | large cover art. Without a cover, it's just 2 panes. */
+.entry-detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 32px;
+  align-items: start;
 }
 
-.entry-detail-cover img {
+.entry-detail-layout.has-cover {
+  grid-template-columns: 1fr 1.2fr 260px;
+}
+
+.entry-detail-meta-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.entry-detail-cover-pane img {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   display: block;
+}
+
+@media (max-width: 900px) {
+  .entry-detail-layout,
+  .entry-detail-layout.has-cover {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-detail-cover-pane {
+    order: -1;
+    max-width: 220px;
+  }
 }
 
 .more-fields {
