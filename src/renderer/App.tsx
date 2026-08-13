@@ -4,6 +4,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { LibraryView } from './components/library/LibraryView';
 import { EntryForm, type EntryFormValues } from './components/entry/EntryForm';
 import { EntryDetail } from './components/entry/EntryDetail';
+import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { useTags } from './hooks/useTags';
 import { api } from './api/client';
 
@@ -15,6 +16,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [detailEntry, setDetailEntry] = useState<Record<string, unknown> | null>(null);
   const [formInitial, setFormInitial] = useState<Partial<EntryFormValues> | undefined>(undefined);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const { tags, createTag } = useTags();
 
   function selectMediaType(type: MediaType) {
@@ -53,9 +55,14 @@ export default function App() {
     setView({ name: 'library' });
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm('Delete this entry? This cannot be undone.')) return;
-    await api[mediaType].delete(id);
+  function handleDelete(id: number) {
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (pendingDeleteId === null) return;
+    await api[mediaType].delete(pendingDeleteId);
+    setPendingDeleteId(null);
     setRefreshKey((k) => k + 1);
     setView({ name: 'library' });
   }
@@ -93,6 +100,12 @@ export default function App() {
           />
         )}
       </main>
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        message="Delete this entry? This cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }
