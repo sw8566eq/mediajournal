@@ -1,0 +1,21 @@
+appId: com.sw8566eq.mediajournal
+productName: Media Journal
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist
+  - dist-electron
+  - migrations
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**/*'
+linux:
+  target:
+    - AppImage
+  category: Utility
+mac:
+  target:
+    - dmg
+win:
+  target:
+    - nsis

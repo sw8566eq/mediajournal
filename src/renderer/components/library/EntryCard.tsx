@@ -1,0 +1,36 @@
+import type { MediaType, Tag } from '@shared/types';
+import { PRIMARY_FIELD, STATUS_LABELS } from '../../mediaTypeConfig';
+
+interface Props {
+  mediaType: MediaType;
+  entry: Record<string, unknown>;
+  onClick: () => void;
+}
+
+export function EntryCard({ mediaType, entry, onClick }: Props) {
+  const rating = entry.ratingTenths as number | null;
+  const primaryValue = entry[PRIMARY_FIELD[mediaType]] as string | null;
+  const tags = (entry.tags as Tag[] | undefined) ?? [];
+  const status = entry.status as keyof typeof STATUS_LABELS;
+
+  return (
+    <div className="entry-card" onClick={onClick} role="button" tabIndex={0}>
+      <div className="entry-card-title">{entry.title as string}</div>
+      <div className="entry-card-subtitle">{[primaryValue, entry.year].filter(Boolean).join(' · ') || '—'}</div>
+      <div className="entry-card-meta">
+        {entry.genre ? <span className="pill">{entry.genre as string}</span> : null}
+        <span className={`pill status-${status}`}>{STATUS_LABELS[status]}</span>
+        {rating !== null && <span className="pill rating">{(rating / 10).toFixed(1)}/10</span>}
+      </div>
+      {tags.length > 0 && (
+        <div className="tag-list small">
+          {tags.map((t) => (
+            <span className="tag-chip" key={t.id}>
+              {t.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

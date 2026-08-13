@@ -1,0 +1,27 @@
+import { MEDIA_TYPES, type MediaType } from './types';
+
+/** Single source of truth for IPC channel names, shared by preload (sender) and main (handler). */
+function mediaChannels(type: MediaType) {
+  return {
+    list: `${type}:list`,
+    get: `${type}:get`,
+    create: `${type}:create`,
+    update: `${type}:update`,
+    delete: `${type}:delete`,
+  } as const;
+}
+
+export const IPC = {
+  movie: mediaChannels('movie'),
+  tv: mediaChannels('tv'),
+  book: mediaChannels('book'),
+  album: mediaChannels('album'),
+  game: mediaChannels('game'),
+  tags: {
+    list: 'tags:list',
+    create: 'tags:create',
+    delete: 'tags:delete',
+  },
+} as const;
+
+export const MEDIA_TYPES_LIST = MEDIA_TYPES;
