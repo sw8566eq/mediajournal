@@ -473,6 +473,43 @@ button.danger {
   display: block;
 }
 
+.more-fields {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.more-fields-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.more-fields-toggle:hover {
+  color: var(--text);
+}
+
+.more-fields-caret {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.more-fields-caret.open {
+  transform: rotate(90deg);
+}
+
+.more-fields-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

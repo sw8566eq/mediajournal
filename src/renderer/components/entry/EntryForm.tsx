@@ -6,6 +6,7 @@ import { StatusSelect } from './StatusSelect';
 import { TagPicker } from './TagPicker';
 import { TypeSpecificFields } from './TypeSpecificFields';
 import { CoverArtField } from './CoverArtField';
+import { MoreFieldsSection } from './MoreFieldsSection';
 
 export interface EntryFormValues {
   title: string;
@@ -95,8 +96,11 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
       <TypeSpecificFields
         mediaType={mediaType}
         values={values}
+        variant="primary"
         onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
       />
+
+      <RatingInput valueTenths={values.ratingTenths} onChange={(v) => set('ratingTenths', v)} />
 
       <CoverArtField
         value={values.coverPath}
@@ -104,29 +108,41 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
         onImported={(filename) => sessionImportedFiles.current.push(filename)}
       />
 
-      <label className="field">
-        <span>Genre</span>
-        <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
-      </label>
+      <MoreFieldsSection>
+        <TypeSpecificFields
+          mediaType={mediaType}
+          values={values}
+          variant="secondary"
+          onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
+        />
 
-      <RatingInput valueTenths={values.ratingTenths} onChange={(v) => set('ratingTenths', v)} />
-      <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
+        <label className="field">
+          <span>Genre</span>
+          <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
+        </label>
 
-      <label className="field">
-        <span>Start Date</span>
-        <input type="date" value={values.startDate ?? ''} onChange={(e) => set('startDate', e.target.value || null)} />
-      </label>
-      <label className="field">
-        <span>Finish Date</span>
-        <input type="date" value={values.finishDate ?? ''} onChange={(e) => set('finishDate', e.target.value || null)} />
-      </label>
+        <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
 
-      <label className="field">
-        <span>Notes</span>
-        <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
-      </label>
+        <label className="field">
+          <span>Start Date</span>
+          <input type="date" value={values.startDate ?? ''} onChange={(e) => set('startDate', e.target.value || null)} />
+        </label>
+        <label className="field">
+          <span>Finish Date</span>
+          <input
+            type="date"
+            value={values.finishDate ?? ''}
+            onChange={(e) => set('finishDate', e.target.value || null)}
+          />
+        </label>
 
-      <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
+        <label className="field">
+          <span>Notes</span>
+          <textarea rows={5} value={values.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />
+        </label>
+
+        <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
+      </MoreFieldsSection>
 
       <div className="form-actions">
         <button type="button" onClick={handleCancel} disabled={saving}>
