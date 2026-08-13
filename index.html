@@ -2,9 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      img-src additions are external-search result thumbnails (loaded directly from the provider,
+      before the user picks one and it gets cached locally via media-cover:): Open Library covers
+      and the Cover Art Archive. Add image.tmdb.org / media.rawg.io here once TMDB/RAWG are wired
+      up (see src/main/externalApis/index.ts).
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' media-cover:"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' media-cover: https://covers.openlibrary.org https://coverartarchive.org"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Media Journal</title>

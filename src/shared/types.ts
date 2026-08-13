@@ -141,6 +141,29 @@ export interface CoverAPI {
   remove: (filename: string) => Promise<void>;
 }
 
+/** One normalized result from an external media database search (TMDB/Open Library/RAWG/MusicBrainz/...). */
+export interface ExternalSearchResult {
+  /** The provider's own id for this item, e.g. an Open Library work key or MusicBrainz MBID. */
+  externalId: string;
+  title: string;
+  year: number | null;
+  /** director/creator/author/artist/developer analog, matching PRIMARY_FIELD's concept per media type. */
+  subtitle: string | null;
+  genre: string | null;
+  /** A remote image URL (not yet downloaded) - the caller runs it through CoverAPI.importFromUrl to cache it locally. */
+  coverImageUrl: string | null;
+}
+
+export type ExternalSearchResponse =
+  | { status: 'ok'; results: ExternalSearchResult[] }
+  /** This media type's provider needs an API key that hasn't been configured yet. */
+  | { status: 'not_configured' }
+  | { status: 'error'; message: string };
+
+export interface ExternalSearchAPI {
+  search: (mediaType: MediaType, query: string) => Promise<ExternalSearchResponse>;
+}
+
 export interface MediaJournalAPI {
   movie: MediaTypeAPI<'movie'>;
   tv: MediaTypeAPI<'tv'>;
@@ -149,4 +172,5 @@ export interface MediaJournalAPI {
   game: MediaTypeAPI<'game'>;
   tags: TagAPI;
   covers: CoverAPI;
+  externalSearch: ExternalSearchAPI;
 }

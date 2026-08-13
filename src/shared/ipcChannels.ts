@@ -27,6 +27,9 @@ export const IPC = {
     importFromUrl: 'covers:importFromUrl',
     remove: 'covers:remove',
   },
+  externalSearch: {
+    search: 'externalSearch:search',
+  },
 } as const;
 
 /** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */

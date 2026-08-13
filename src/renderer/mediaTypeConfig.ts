@@ -61,3 +61,13 @@ export const STATUS_LABELS: Record<EntryStatus, string> = {
   planned: 'Planned',
   in_progress: 'In Progress',
 };
+
+/** Which external database autofill search hits per media type. Movie/TV/Game aren't wired up yet
+ *  (need an API key) but are still named here so the search panel can say what's coming. */
+export const EXTERNAL_PROVIDER_LABELS: Record<MediaType, string> = {
+  movie: 'TMDB',
+  tv: 'TMDB',
+  book: 'Open Library',
+  album: 'MusicBrainz',
+  game: 'RAWG',
+};

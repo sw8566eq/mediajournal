@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ENTRY_STATUSES, type MediaType } from './types';
+import { ENTRY_STATUSES, MEDIA_TYPES, type MediaType } from './types';
 
 // `.nullish()` (not `.nullable()`) everywhere except `title`: these fields are optional, so the
 // key may be `null` OR simply absent from the payload (e.g. an untouched type-specific field on
@@ -100,3 +100,8 @@ export const EntryFiltersSchema = z.object({
 });
 
 export const TagNameSchema = z.string().trim().min(1).max(100);
+
+export const ExternalSearchQuerySchema = z.object({
+  mediaType: z.enum(MEDIA_TYPES),
+  query: z.string().trim().min(1).max(300),
+});

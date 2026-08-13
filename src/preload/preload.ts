@@ -36,6 +36,10 @@ const api: MediaJournalAPI = {
     importFromUrl: (url: string) => ipcRenderer.invoke(IPC.covers.importFromUrl, url),
     remove: (filename: string) => ipcRenderer.invoke(IPC.covers.remove, filename),
   },
+  externalSearch: {
+    search: (mediaType: MediaType, query: string) =>
+      ipcRenderer.invoke(IPC.externalSearch.search, { mediaType, query }),
+  },
 };
 
 contextBridge.exposeInMainWorld('mediaJournalAPI', api);

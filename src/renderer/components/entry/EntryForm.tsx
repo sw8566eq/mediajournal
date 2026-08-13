@@ -1,11 +1,13 @@
 import { useRef, useState, type FormEvent } from 'react';
-import type { EntryStatus, MediaType, Tag } from '@shared/types';
+import type { EntryStatus, ExternalSearchResult, MediaType, Tag } from '@shared/types';
 import { api } from '../../api/client';
+import { PRIMARY_FIELD } from '../../mediaTypeConfig';
 import { RatingInput } from './RatingInput';
 import { StatusSelect } from './StatusSelect';
 import { TagPicker } from './TagPicker';
 import { TypeSpecificFields } from './TypeSpecificFields';
 import { CoverArtField } from './CoverArtField';
+import { ExternalSearchPanel } from './ExternalSearchPanel';
 import { MoreFieldsSection } from './MoreFieldsSection';
 
 export interface EntryFormValues {
@@ -83,11 +85,37 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
     onCancel();
   }
 
+  // Only touches the fields autofill is actually responsible for - notes/tags/rating/status/
+  // dates are left alone, since those are the user's own content, not metadata lookup results.
+  async function handleApplyExternalResult(result: ExternalSearchResult) {
+    const primaryKey = PRIMARY_FIELD[mediaType];
+    setValues((prev) => ({
+      ...prev,
+      title: result.title,
+      year: result.year,
+      genre: result.genre ?? prev.genre,
+      [primaryKey]: result.subtitle,
+      externalId: result.externalId,
+    }));
+
+    if (result.coverImageUrl) {
+      try {
+        const filename = await api.covers.importFromUrl(result.coverImageUrl);
+        sessionImportedFiles.current.push(filename);
+        set('coverPath', filename);
+      } catch {
+        // Best-effort - not every result has cover art available. Metadata autofill still applies.
+      }
+    }
+  }
+
   return (
     <form className="entry-form" onSubmit={handleSubmit}>
       <div className="entry-form-main">
         <h2>{initialValues ? 'Edit Entry' : 'Add Entry'}</h2>
         {error && <div className="error-banner">{error}</div>}
+
+        <ExternalSearchPanel mediaType={mediaType} initialQuery={values.title} onApplyResult={handleApplyExternalResult} />
 
         <label className="field">
           <span>Title</span>
