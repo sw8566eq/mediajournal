@@ -12,7 +12,8 @@ const isoDate = z
 const title = z.string().trim().min(1, 'Title is required').max(500);
 const genre = z.string().trim().max(200).nullish();
 const ratingTenths = z.number().int().min(0).max(100).nullish();
-const status = z.enum(ENTRY_STATUSES).default('none');
+// nullish (not defaulted): blank/unset is a valid, first-class value meaning "no active status".
+const status = z.enum(ENTRY_STATUSES).nullish();
 const notes = z.string().max(20000).nullish();
 const externalId = z.string().max(200).nullish();
 const coverPath = z.string().max(1000).nullish();

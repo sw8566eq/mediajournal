@@ -4,9 +4,10 @@
 export const MEDIA_TYPES = ['movie', 'tv', 'book', 'album', 'game'] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
 
-// 'none' is the default: most logged entries are things already finished, so "no active status"
-// means finished rather than defaulting new entries to 'planned' (which assumed the opposite).
-export const ENTRY_STATUSES = ['none', 'planned', 'in_progress'] as const;
+// Status is optional (null = blank = no active status). Most logged entries are things already
+// finished, so blank implicitly means finished rather than forcing every entry to declare a
+// status. Only 'planned' and 'in_progress' are real values worth tracking/displaying.
+export const ENTRY_STATUSES = ['planned', 'in_progress'] as const;
 export type EntryStatus = (typeof ENTRY_STATUSES)[number];
 
 export interface Tag {
@@ -21,7 +22,8 @@ export interface BaseEntryFields {
   genre: string | null;
   /** Rating stored as integer tenths (0-100) to avoid float rounding. Display as `ratingTenths / 10` e.g. 82 -> "8.2". */
   ratingTenths: number | null;
-  status: EntryStatus;
+  /** null = blank/no active status, which implicitly means finished. */
+  status: EntryStatus | null;
   /** ISO 8601 date string YYYY-MM-DD, or null */
   startDate: string | null;
   finishDate: string | null;

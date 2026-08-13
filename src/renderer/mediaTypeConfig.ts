@@ -58,7 +58,6 @@ export const PRIMARY_FIELD: Record<MediaType, string> = {
 };
 
 export const STATUS_LABELS: Record<EntryStatus, string> = {
-  none: 'None',
   planned: 'Planned',
   in_progress: 'In Progress',
 };

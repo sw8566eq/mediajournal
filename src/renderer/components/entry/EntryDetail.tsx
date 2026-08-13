@@ -14,6 +14,7 @@ export function EntryDetail({ mediaType, entry, onEdit, onDelete, onBack }: Prop
   const rating = entry.ratingTenths as number | null;
   const tags = (entry.tags as Tag[] | undefined) ?? [];
   const cover = coverUrl(entry.coverPath as string | null | undefined);
+  const status = entry.status as keyof typeof STATUS_LABELS | null;
 
   return (
     <div className="entry-detail">
@@ -37,9 +38,11 @@ export function EntryDetail({ mediaType, entry, onEdit, onDelete, onBack }: Prop
             <div>
               <strong>Rating:</strong> {rating === null ? '—' : `${(rating / 10).toFixed(1)}/10`}
             </div>
-            <div>
-              <strong>Status:</strong> {STATUS_LABELS[entry.status as keyof typeof STATUS_LABELS]}
-            </div>
+            {status && (
+              <div>
+                <strong>Status:</strong> {STATUS_LABELS[status]}
+              </div>
+            )}
             <div>
               <strong>Start:</strong> {(entry.startDate as string) || '—'}
             </div>

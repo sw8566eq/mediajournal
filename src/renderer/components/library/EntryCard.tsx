@@ -12,7 +12,7 @@ export function EntryCard({ mediaType, entry, onClick }: Props) {
   const rating = entry.ratingTenths as number | null;
   const primaryValue = entry[PRIMARY_FIELD[mediaType]] as string | null;
   const tags = (entry.tags as Tag[] | undefined) ?? [];
-  const status = entry.status as keyof typeof STATUS_LABELS;
+  const status = entry.status as keyof typeof STATUS_LABELS | null;
   const cover = coverUrl(entry.coverPath as string | null | undefined);
 
   return (
@@ -26,7 +26,7 @@ export function EntryCard({ mediaType, entry, onClick }: Props) {
       <div className="entry-card-subtitle">{[primaryValue, entry.year].filter(Boolean).join(' · ') || '—'}</div>
       <div className="entry-card-meta">
         {entry.genre ? <span className="pill">{entry.genre as string}</span> : null}
-        <span className={`pill status-${status}`}>{STATUS_LABELS[status]}</span>
+        {status && <span className={`pill status-${status}`}>{STATUS_LABELS[status]}</span>}
         {rating !== null && <span className="pill rating">{(rating / 10).toFixed(1)}/10</span>}
       </div>
       {tags.length > 0 && (

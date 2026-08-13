@@ -12,7 +12,7 @@ export interface EntryFormValues {
   title: string;
   genre: string | null;
   ratingTenths: number | null;
-  status: EntryStatus;
+  status: EntryStatus | null;
   startDate: string | null;
   finishDate: string | null;
   notes: string | null;
@@ -35,7 +35,7 @@ const DEFAULTS: EntryFormValues = {
   title: '',
   genre: null,
   ratingTenths: null,
-  status: 'none',
+  status: null,
   startDate: null,
   finishDate: null,
   notes: null,
