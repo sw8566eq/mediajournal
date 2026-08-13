@@ -1,15 +1,20 @@
 # Media Journal
 
-A personal desktop app for tracking movies, TV shows, books, music, and games you've watched, read, listened to, or played — with ratings, status, notes, and tags.
+A personal desktop app for tracking movies, TV shows, books, music, and games you've watched, read, listened to, or played — with ratings, status, notes, tags, and cover art.
+
+> **About this project.** This app is a test of [Claude Code](https://claude.com/claude-code)'s ability to build and evolve a real desktop application end to end — from an empty repository through a growing feature set — spanning Electron, React, SQLite, and integration with external web APIs. The entire codebase, including this document, was written by Claude Code.
 
 ## Features
 
 - Separate library views for Movies, TV, Books, Music, and Games
 - 10-point rating scale (e.g. `8.2/10`)
-- Status tracking (Planned / In Progress / Completed / Dropped) with start/finish dates
+- Status tracking (Planned / In Progress, or left blank to mean finished) with start/finish dates
 - Free-text notes per entry
 - Shared tags across all media types, plus per-type genre
+- Cover art, either picked from a local file or fetched from a URL
+- Autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys
 - Filter by status, rating range, genre, tags, year, and date range; search by title/notes; sort by multiple fields
+- Export your whole library to a JSON file and import it back in (additive — never overwrites existing data)
 - Local-only storage — your data stays on your machine (SQLite)
 
 ## Tech stack
@@ -18,6 +23,7 @@ A personal desktop app for tracking movies, TV shows, books, music, and games yo
 - [React](https://react.dev/) + [Vite](https://vitejs.dev/) for the UI
 - [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) for local storage
 - TypeScript throughout, with a typed IPC contract between the renderer and main process
+- [Open Library](https://openlibrary.org/dev/docs/api/search) and [MusicBrainz](https://musicbrainz.org/doc/MusicBrainz_API) for external metadata autofill
 
 ## Getting started
 
@@ -40,6 +46,6 @@ Produces a platform installer/package via `electron-builder`.
 
 ## Project status
 
-This is an early, actively developed v1: core tracking, rating, notes, and filtering across all five media types are in place. Not yet built: searching external databases to autofill metadata, cover art, cloud sync, and stats/charts.
+Actively developed. Core tracking, rating, notes, filtering, cover art, external-database autofill (for two of five media types so far), and backup/restore are all in place. Not yet built: TMDB/RAWG autofill (needs API keys), cloud sync, stats/charts, and full-text search.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes if you're contributing or exploring the code.
