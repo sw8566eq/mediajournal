@@ -1,20 +1,23 @@
 import { z } from 'zod';
 import { ENTRY_STATUSES, type MediaType } from './types';
 
+// `.nullish()` (not `.nullable()`) everywhere except `title`: these fields are optional, so the
+// key may be `null` OR simply absent from the payload (e.g. an untouched type-specific field on
+// create). `.nullable()` alone would still reject a missing key, which was the bug here.
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
-  .nullable();
+  .nullish();
 
 const title = z.string().trim().min(1, 'Title is required').max(500);
-const genre = z.string().trim().max(200).nullable();
-const ratingTenths = z.number().int().min(0).max(100).nullable();
-const status = z.enum(ENTRY_STATUSES);
-const notes = z.string().max(20000).nullable();
-const externalId = z.string().max(200).nullable();
-const coverPath = z.string().max(1000).nullable();
+const genre = z.string().trim().max(200).nullish();
+const ratingTenths = z.number().int().min(0).max(100).nullish();
+const status = z.enum(ENTRY_STATUSES).default('planned');
+const notes = z.string().max(20000).nullish();
+const externalId = z.string().max(200).nullish();
+const coverPath = z.string().max(1000).nullish();
 const tagIds = z.array(z.number().int().positive()).default([]);
-const year = z.number().int().min(0).max(3000).nullable();
+const year = z.number().int().min(0).max(3000).nullish();
 
 const baseFields = {
   title,
@@ -31,37 +34,37 @@ const baseFields = {
 
 export const MovieCreateSchema = z.object({
   ...baseFields,
-  director: z.string().trim().max(300).nullable(),
+  director: z.string().trim().max(300).nullish(),
   year,
-  runtimeMin: z.number().int().min(0).max(10000).nullable(),
+  runtimeMin: z.number().int().min(0).max(10000).nullish(),
 });
 
 export const TvShowCreateSchema = z.object({
   ...baseFields,
-  creator: z.string().trim().max(300).nullable(),
+  creator: z.string().trim().max(300).nullish(),
   year,
-  seasonsWatched: z.number().int().min(0).max(1000).nullable(),
+  seasonsWatched: z.number().int().min(0).max(1000).nullish(),
 });
 
 export const BookCreateSchema = z.object({
   ...baseFields,
-  author: z.string().trim().max(300).nullable(),
+  author: z.string().trim().max(300).nullish(),
   year,
-  pages: z.number().int().min(0).max(100000).nullable(),
+  pages: z.number().int().min(0).max(100000).nullish(),
 });
 
 export const AlbumCreateSchema = z.object({
   ...baseFields,
-  artist: z.string().trim().max(300).nullable(),
+  artist: z.string().trim().max(300).nullish(),
   year,
 });
 
 export const GameCreateSchema = z.object({
   ...baseFields,
-  developer: z.string().trim().max(300).nullable(),
-  platform: z.string().trim().max(200).nullable(),
+  developer: z.string().trim().max(300).nullish(),
+  platform: z.string().trim().max(200).nullish(),
   year,
-  hoursPlayed: z.number().min(0).max(100000).nullable(),
+  hoursPlayed: z.number().min(0).max(100000).nullish(),
 });
 
 export const CreateSchemaByType = {
