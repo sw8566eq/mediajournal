@@ -16,7 +16,7 @@ export function EntryCard({ mediaType, entry, onClick }: Props) {
   const cover = coverUrl(entry.coverPath as string | null | undefined);
 
   return (
-    <div className="entry-card" onClick={onClick} role="button" tabIndex={0}>
+    <div className={cover ? 'entry-card has-cover' : 'entry-card'} onClick={onClick} role="button" tabIndex={0}>
       {cover && (
         <div className="entry-card-cover">
           <img src={cover} alt="" />
