@@ -128,6 +128,15 @@ export interface TagAPI {
   delete: (id: number) => Promise<void>;
 }
 
+export interface CoverAPI {
+  /** Opens a native file-picker dialog; returns the stored filename, or null if the user canceled. */
+  pickFromDisk: () => Promise<string | null>;
+  /** Downloads an image from a URL into local storage; returns the stored filename. */
+  importFromUrl: (url: string) => Promise<string>;
+  /** Best-effort delete of a previously stored cover file. */
+  remove: (filename: string) => Promise<void>;
+}
+
 export interface MediaJournalAPI {
   movie: MediaTypeAPI<'movie'>;
   tv: MediaTypeAPI<'tv'>;
@@ -135,4 +144,5 @@ export interface MediaJournalAPI {
   album: MediaTypeAPI<'album'>;
   game: MediaTypeAPI<'game'>;
   tags: TagAPI;
+  covers: CoverAPI;
 }

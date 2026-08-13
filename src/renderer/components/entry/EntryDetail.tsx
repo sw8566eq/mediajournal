@@ -1,5 +1,6 @@
 import type { MediaType, Tag } from '@shared/types';
 import { STATUS_LABELS, TYPE_FIELDS } from '../../mediaTypeConfig';
+import { coverUrl } from '../../coverUrl';
 
 interface Props {
   mediaType: MediaType;
@@ -12,6 +13,7 @@ interface Props {
 export function EntryDetail({ mediaType, entry, onEdit, onDelete, onBack }: Props) {
   const rating = entry.ratingTenths as number | null;
   const tags = (entry.tags as Tag[] | undefined) ?? [];
+  const cover = coverUrl(entry.coverPath as string | null | undefined);
 
   return (
     <div className="entry-detail">
@@ -19,6 +21,12 @@ export function EntryDetail({ mediaType, entry, onEdit, onDelete, onBack }: Prop
         ← Back
       </button>
       <h2>{entry.title as string}</h2>
+
+      {cover && (
+        <div className="entry-detail-cover">
+          <img src={cover} alt="" />
+        </div>
+      )}
 
       <div className="meta-grid">
         {TYPE_FIELDS[mediaType].map((f) => (

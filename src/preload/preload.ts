@@ -31,6 +31,11 @@ const api: MediaJournalAPI = {
     create: (name: string) => ipcRenderer.invoke(IPC.tags.create, name),
     delete: (id: number) => ipcRenderer.invoke(IPC.tags.delete, id),
   },
+  covers: {
+    pickFromDisk: () => ipcRenderer.invoke(IPC.covers.pickFromDisk),
+    importFromUrl: (url: string) => ipcRenderer.invoke(IPC.covers.importFromUrl, url),
+    remove: (filename: string) => ipcRenderer.invoke(IPC.covers.remove, filename),
+  },
 };
 
 contextBridge.exposeInMainWorld('mediaJournalAPI', api);

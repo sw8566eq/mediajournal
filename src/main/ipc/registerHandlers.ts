@@ -13,6 +13,7 @@ import {
 } from '@shared/validation';
 import { registerMediaHandlers } from './mediaHandlers';
 import { registerTagHandlers } from './tagHandlers';
+import { registerCoverHandlers } from './coverHandlers';
 
 /** Registers every IPC handler the renderer relies on. Call once during app startup, before the window loads. */
 export function registerHandlers(): void {
@@ -48,4 +49,5 @@ export function registerHandlers(): void {
   });
 
   registerTagHandlers();
+  registerCoverHandlers();
 }

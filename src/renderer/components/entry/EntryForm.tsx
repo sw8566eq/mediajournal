@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import type { EntryStatus, MediaType, Tag } from '@shared/types';
+import { api } from '../../api/client';
 import { RatingInput } from './RatingInput';
 import { StatusSelect } from './StatusSelect';
 import { TagPicker } from './TagPicker';
 import { TypeSpecificFields } from './TypeSpecificFields';
+import { CoverArtField } from './CoverArtField';
 
 export interface EntryFormValues {
   title: string;
@@ -47,6 +49,12 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cover art cleanup bookkeeping: the cover this entry had when the form opened, and every file
+  // imported (picked/downloaded) during this session, so we can delete whichever ones don't end
+  // up persisted rather than leaving orphaned files on disk. See handleSubmit/handleCancel below.
+  const originalCoverPath = useRef(initialValues?.coverPath ?? null).current;
+  const sessionImportedFiles = useRef<string[]>([]);
+
   function set<K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
@@ -57,11 +65,21 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
     setError(null);
     try {
       await onSubmit(values);
+      const finalCoverPath = values.coverPath;
+      const stale = sessionImportedFiles.current.filter((f) => f !== finalCoverPath);
+      if (originalCoverPath && originalCoverPath !== finalCoverPath) stale.push(originalCoverPath);
+      await Promise.all(stale.map((f) => api.covers.remove(f)));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleCancel() {
+    // Nothing was saved, so every file imported this session (including the currently-selected one) is orphaned.
+    void Promise.all(sessionImportedFiles.current.map((f) => api.covers.remove(f)));
+    onCancel();
   }
 
   return (
@@ -78,6 +96,12 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
         mediaType={mediaType}
         values={values}
         onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
+      />
+
+      <CoverArtField
+        value={values.coverPath}
+        onChange={(filename) => set('coverPath', filename)}
+        onImported={(filename) => sessionImportedFiles.current.push(filename)}
       />
 
       <label className="field">
@@ -105,7 +129,7 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
       <TagPicker allTags={allTags} selectedIds={values.tagIds} onChange={(ids) => set('tagIds', ids)} onCreateTag={onCreateTag} />
 
       <div className="form-actions">
-        <button type="button" onClick={onCancel} disabled={saving}>
+        <button type="button" onClick={handleCancel} disabled={saving}>
           Cancel
         </button>
         <button type="submit" className="primary" disabled={saving}>

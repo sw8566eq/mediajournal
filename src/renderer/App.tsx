@@ -61,7 +61,9 @@ export default function App() {
 
   async function confirmDelete() {
     if (pendingDeleteId === null) return;
+    const coverPath = detailEntry?.coverPath as string | null | undefined;
     await api[mediaType].delete(pendingDeleteId);
+    if (coverPath) await api.covers.remove(coverPath);
     setPendingDeleteId(null);
     setRefreshKey((k) => k + 1);
     setView({ name: 'library' });

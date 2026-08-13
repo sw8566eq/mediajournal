@@ -22,6 +22,14 @@ export const IPC = {
     create: 'tags:create',
     delete: 'tags:delete',
   },
+  covers: {
+    pickFromDisk: 'covers:pickFromDisk',
+    importFromUrl: 'covers:importFromUrl',
+    remove: 'covers:remove',
+  },
 } as const;
+
+/** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */
+export const COVER_PROTOCOL = 'media-cover';
 
 export const MEDIA_TYPES_LIST = MEDIA_TYPES;

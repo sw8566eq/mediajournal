@@ -1,5 +1,6 @@
 import type { MediaType, Tag } from '@shared/types';
 import { PRIMARY_FIELD, STATUS_LABELS } from '../../mediaTypeConfig';
+import { coverUrl } from '../../coverUrl';
 
 interface Props {
   mediaType: MediaType;
@@ -12,9 +13,15 @@ export function EntryCard({ mediaType, entry, onClick }: Props) {
   const primaryValue = entry[PRIMARY_FIELD[mediaType]] as string | null;
   const tags = (entry.tags as Tag[] | undefined) ?? [];
   const status = entry.status as keyof typeof STATUS_LABELS;
+  const cover = coverUrl(entry.coverPath as string | null | undefined);
 
   return (
     <div className="entry-card" onClick={onClick} role="button" tabIndex={0}>
+      {cover && (
+        <div className="entry-card-cover">
+          <img src={cover} alt="" />
+        </div>
+      )}
       <div className="entry-card-title">{entry.title as string}</div>
       <div className="entry-card-subtitle">{[primaryValue, entry.year].filter(Boolean).join(' · ') || '—'}</div>
       <div className="entry-card-meta">
