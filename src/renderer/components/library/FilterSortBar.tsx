@@ -12,10 +12,11 @@ interface Props {
 const STATUS_VALUES = Object.keys(STATUS_LABELS) as EntryStatus[];
 
 export function FilterSortBar({ filters, onChange, availableGenres, availableTags, onAddClick }: Props) {
-  function toggleStatus(status: EntryStatus) {
-    const current = filters.status ?? [];
-    const next = current.includes(status) ? current.filter((s) => s !== status) : [...current, status];
-    onChange({ ...filters, status: next.length ? next : undefined });
+  // Exclusive: an entry can only actually have one status, so clicking a chip selects just that
+  // one (clicking the already-active one clears the filter back to "any status").
+  function selectStatus(status: EntryStatus) {
+    const isActive = filters.status?.[0] === status;
+    onChange({ ...filters, status: isActive ? undefined : [status] });
   }
 
   function toggleTag(id: number) {
@@ -39,8 +40,8 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
           <button
             key={status}
             type="button"
-            className={(filters.status ?? []).includes(status) ? 'chip active' : 'chip'}
-            onClick={() => toggleStatus(status)}
+            className={filters.status?.[0] === status ? 'chip active' : 'chip'}
+            onClick={() => selectStatus(status)}
           >
             {STATUS_LABELS[status]}
           </button>
