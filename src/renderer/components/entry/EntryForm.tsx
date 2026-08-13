@@ -35,7 +35,7 @@ const DEFAULTS: EntryFormValues = {
   title: '',
   genre: null,
   ratingTenths: null,
-  status: 'planned',
+  status: 'none',
   startDate: null,
   finishDate: null,
   notes: null,

@@ -266,16 +266,13 @@ button.danger {
   font-weight: 700;
 }
 
-.pill.status-completed {
+/* 'none' is the default/most common state (already finished); 'planned' stays neutral. */
+.pill.status-none {
   color: #3e9a4f;
 }
 
 .pill.status-in_progress {
   color: #cf9a1e;
-}
-
-.pill.status-dropped {
-  color: var(--danger);
 }
 
 .tag-list {

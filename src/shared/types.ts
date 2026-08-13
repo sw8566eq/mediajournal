@@ -4,7 +4,9 @@
 export const MEDIA_TYPES = ['movie', 'tv', 'book', 'album', 'game'] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
 
-export const ENTRY_STATUSES = ['planned', 'in_progress', 'completed', 'dropped'] as const;
+// 'none' is the default: most logged entries are things already finished, so "no active status"
+// means finished rather than defaulting new entries to 'planned' (which assumed the opposite).
+export const ENTRY_STATUSES = ['none', 'planned', 'in_progress'] as const;
 export type EntryStatus = (typeof ENTRY_STATUSES)[number];
 
 export interface Tag {
