@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { ExternalSearchResult, MediaType } from '@shared/types';
 import { EXTERNAL_PROVIDER_LABELS } from '../../mediaTypeConfig';
 import { api } from '../../api/client';
@@ -17,8 +17,13 @@ export function ExternalSearchPanel({ mediaType, initialQuery, onApplyResult }: 
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
 
-  async function handleSearch(e: FormEvent) {
-    e.preventDefault();
+  // Deliberately a plain <div>, not a nested <form> - this panel sits inside EntryForm's own
+  // <form>, and a native `submit` event bubbles regardless of which form actually "owns" the
+  // control that triggered it. A nested inner <form> here previously meant clicking Search (or
+  // hitting Enter in the box) also fired EntryForm's onSubmit via bubbling, silently saving
+  // whatever was currently in the form and kicking the user out of Add/Edit before they ever saw
+  // a result. Enter-to-search and the button's click are wired up manually below instead.
+  async function handleSearch() {
     if (!query.trim()) return;
 
     setLoading(true);
@@ -47,19 +52,27 @@ export function ExternalSearchPanel({ mediaType, initialQuery, onApplyResult }: 
     setResults([]);
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void handleSearch();
+    }
+  }
+
   return (
     <div className="external-search">
-      <form className="external-search-bar" onSubmit={handleSearch}>
+      <div className="external-search-bar">
         <input
           type="text"
           placeholder={`Search ${EXTERNAL_PROVIDER_LABELS[mediaType]}…`}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
-        <button type="submit" disabled={loading || !query.trim()}>
+        <button type="button" disabled={loading || !query.trim()} onClick={() => void handleSearch()}>
           {loading ? 'Searching…' : 'Search'}
         </button>
-      </form>
+      </div>
 
       {notConfigured && (
         <div className="hint">
