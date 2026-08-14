@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { getDb } from '../connection';
 import type { BaseEntryFields, EntryFilters, EntryInput, EntryUpdate, MediaType, Tag } from '@shared/types';
+import { SORT_FIELDS } from '@shared/sortFields';
 
 /** Maps a DB column name (snake_case) to its TS field name (camelCase) and back. */
 interface ColumnMap {
@@ -20,15 +21,11 @@ const BASE_COLUMNS: ColumnMap[] = [
   { dbCol: 'cover_path', tsKey: 'coverPath' },
 ];
 
-const SORT_COLUMN: Record<NonNullable<EntryFilters['sortBy']>, string> = {
-  title: 'title',
-  year: 'year',
-  rating: 'rating_tenths',
-  status: 'status',
-  startDate: 'start_date',
-  finishDate: 'finish_date',
-  createdAt: 'created_at',
-};
+// Derived from the shared SORT_FIELDS list (see src/shared/sortFields.ts) rather than
+// hand-written, so this can't silently drift from sortEntries.ts's client-side SORT_KEY.
+const SORT_COLUMN: Record<NonNullable<EntryFilters['sortBy']>, string> = Object.fromEntries(
+  SORT_FIELDS.map((f) => [f.value, f.dbColumn]),
+) as Record<NonNullable<EntryFilters['sortBy']>, string>;
 
 /**
  * Builds an FTS5 MATCH query for a free-text search box: each whitespace-separated word becomes
@@ -157,7 +154,9 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
       const sortCol = filters.sortBy ? SORT_COLUMN[filters.sortBy] : 'title';
       const sortDir = filters.sortDir === 'desc' ? 'DESC' : 'ASC';
       const rows = db
-        .prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${sortCol} COLLATE NOCASE ${sortDir}`)
+        // NULLS LAST regardless of direction, matching sortEntries.ts's client-side comparator
+        // used to re-sort the merged "All" view - keeps ordering consistent between the two.
+        .prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${sortCol} COLLATE NOCASE ${sortDir} NULLS LAST`)
         .all(...params) as Record<string, unknown>[];
       return rows.map((row) => rowToEntry(db, row));
     },

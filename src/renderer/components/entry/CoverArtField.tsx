@@ -7,17 +7,24 @@ interface Props {
   onChange: (filename: string | null) => void;
   /** Called whenever a new file gets imported (picked or downloaded), so the form can track it for cleanup. */
   onImported: (filename: string) => void;
+  /** Reports whether a pick/fetch is in flight, so the parent form can hold off on Save until it settles. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /** Lets the user set cover art either from a local file (native picker, via the main process) or an image URL. */
-export function CoverArtField({ value, onChange, onImported }: Props) {
+export function CoverArtField({ value, onChange, onImported, onBusyChange }: Props) {
   const [urlInput, setUrlInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function setBusyState(next: boolean) {
+    setBusy(next);
+    onBusyChange?.(next);
+  }
+
   async function handlePickFromDisk() {
     setError(null);
-    setBusy(true);
+    setBusyState(true);
     try {
       const filename = await api.covers.pickFromDisk();
       if (filename) {
@@ -27,7 +34,7 @@ export function CoverArtField({ value, onChange, onImported }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setBusyState(false);
     }
   }
 
@@ -35,7 +42,7 @@ export function CoverArtField({ value, onChange, onImported }: Props) {
     const url = urlInput.trim();
     if (!url) return;
     setError(null);
-    setBusy(true);
+    setBusyState(true);
     try {
       const filename = await api.covers.importFromUrl(url);
       onImported(filename);
@@ -44,7 +51,7 @@ export function CoverArtField({ value, onChange, onImported }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setBusyState(false);
     }
   }
 

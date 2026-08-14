@@ -20,15 +20,28 @@ interface MusicBrainzSearchResponse {
 
 // MusicBrainz's usage policy caps unauthenticated requests at 1/sec. This throttle is local to
 // this module (not the IPC layer) since it's a constraint specific to this one provider.
+//
+// Serialized through a single promise chain rather than a plain read/wait/write on lastRequestAt:
+// two overlapping calls to search() (e.g. a rapid double-click before the first resolves) would
+// otherwise both read the same stale lastRequestAt, compute the same wait, and fire together,
+// defeating the throttle. Chaining onto `queue` forces each caller's wait-and-claim to only run
+// after the previous one has finished claiming its slot.
 let lastRequestAt = 0;
+let queue: Promise<void> = Promise.resolve();
 const MIN_GAP_MS = 1100; // slight pad over the 1000ms minimum
 
-async function throttle(): Promise<void> {
-  const elapsed = Date.now() - lastRequestAt;
-  if (elapsed < MIN_GAP_MS) {
-    await new Promise((resolve) => setTimeout(resolve, MIN_GAP_MS - elapsed));
-  }
-  lastRequestAt = Date.now();
+function throttle(): Promise<void> {
+  const slot = queue.then(async () => {
+    const elapsed = Date.now() - lastRequestAt;
+    if (elapsed < MIN_GAP_MS) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_GAP_MS - elapsed));
+    }
+    lastRequestAt = Date.now();
+  });
+  // Keep the chain alive even if this slot's caller later throws downstream (e.g. the fetch that
+  // follows fails) - only the throttle step itself, not the whole search(), lives in this chain.
+  queue = slot.catch(() => {});
+  return slot;
 }
 
 function parseYear(firstReleaseDate: string | undefined): number | null {

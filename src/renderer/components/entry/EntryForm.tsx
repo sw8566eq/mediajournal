@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { EntryStatus, ExternalSearchResult, MediaType, Tag } from '@shared/types';
 import { api } from '../../api/client';
 import { PRIMARY_FIELD } from '../../mediaTypeConfig';
@@ -51,6 +51,10 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
   const [values, setValues] = useState<EntryFormValues>({ ...DEFAULTS, ...initialValues });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True while a cover art pick/URL-fetch/external-search-apply is in flight, so Save can't be
+  // clicked before the resulting coverPath is actually applied to `values` (it used to be possible
+  // to save with the previous cover if you clicked Save right after picking a new one).
+  const [coverBusy, setCoverBusy] = useState(false);
 
   // Cover art cleanup bookkeeping: the cover this entry had when the form opened, and every file
   // imported (picked/downloaded) during this session, so we can delete whichever ones don't end
@@ -58,12 +62,22 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
   const originalCoverPath = useRef(initialValues?.coverPath ?? null).current;
   const sessionImportedFiles = useRef<string[]>([]);
 
+  // handleSubmit's onSubmit(values) call changes the parent's view, unmounting this component
+  // before the cleanup/finally code below finishes - guard against updating state after that.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   function set<K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (coverBusy) return; // defensive: the Save button is disabled while true, but guard direct submits too
     setSaving(true);
     setError(null);
     try {
@@ -73,9 +87,9 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
       if (originalCoverPath && originalCoverPath !== finalCoverPath) stale.push(originalCoverPath);
       await Promise.all(stale.map((f) => api.covers.remove(f)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      if (isMountedRef.current) setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) setSaving(false);
     }
   }
 
@@ -99,12 +113,15 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
     }));
 
     if (result.coverImageUrl) {
+      setCoverBusy(true);
       try {
         const filename = await api.covers.importFromUrl(result.coverImageUrl);
         sessionImportedFiles.current.push(filename);
         set('coverPath', filename);
       } catch {
         // Best-effort - not every result has cover art available. Metadata autofill still applies.
+      } finally {
+        setCoverBusy(false);
       }
     }
   }
@@ -175,8 +192,8 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
           <button type="button" onClick={handleCancel} disabled={saving}>
             Cancel
           </button>
-          <button type="submit" className="primary" disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+          <button type="submit" className="primary" disabled={saving || coverBusy} title={coverBusy ? 'Waiting for cover art to finish…' : undefined}>
+            {saving ? 'Saving…' : coverBusy ? 'Fetching cover…' : 'Save'}
           </button>
         </div>
       </div>
@@ -186,6 +203,7 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
           value={values.coverPath}
           onChange={(filename) => set('coverPath', filename)}
           onImported={(filename) => sessionImportedFiles.current.push(filename)}
+          onBusyChange={setCoverBusy}
         />
       </div>
     </form>

@@ -1,14 +1,11 @@
 import type { EntryFilters } from '@shared/types';
+import { SORT_FIELDS } from '@shared/sortFields';
 
-const SORT_KEY: Record<NonNullable<EntryFilters['sortBy']>, string> = {
-  title: 'title',
-  year: 'year',
-  rating: 'ratingTenths',
-  status: 'status',
-  startDate: 'startDate',
-  finishDate: 'finishDate',
-  createdAt: 'createdAt',
-};
+// Derived from the shared SORT_FIELDS list (see src/shared/sortFields.ts) rather than
+// hand-written, so this can't silently drift from mediaRepository.ts's server-side SORT_COLUMN.
+const SORT_KEY: Record<NonNullable<EntryFilters['sortBy']>, string> = Object.fromEntries(
+  SORT_FIELDS.map((f) => [f.value, f.tsKey]),
+) as Record<NonNullable<EntryFilters['sortBy']>, string>;
 
 /**
  * Comparator for merging several already-server-sorted per-type entry lists (the "All" library

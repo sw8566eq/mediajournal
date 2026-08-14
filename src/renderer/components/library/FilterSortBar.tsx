@@ -28,6 +28,13 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
     onChange({ ...filters, tagIds: next.length ? next : undefined });
   }
 
+  // availableGenres is derived from the currently-filtered results, so it can lose the active
+  // selection entirely once another filter narrows the list to nothing of that genre - keep the
+  // selected value visible (and explicitly clearable) instead of it silently vanishing from its
+  // own dropdown while still being applied.
+  const genreOptions =
+    filters.genre && !availableGenres.includes(filters.genre) ? [...availableGenres, filters.genre].sort() : availableGenres;
+
   return (
     <div className="filter-bar">
       <input
@@ -68,7 +75,7 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
 
       <select value={filters.genre ?? ''} onChange={(e) => onChange({ ...filters, genre: e.target.value || undefined })}>
         <option value="">All genres</option>
-        {availableGenres.map((g) => (
+        {genreOptions.map((g) => (
           <option key={g} value={g}>
             {g}
           </option>

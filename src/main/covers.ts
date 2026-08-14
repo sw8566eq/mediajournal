@@ -62,6 +62,15 @@ export async function importFromUrl(rawUrl: string): Promise<string> {
     throw new Error(`Unsupported image type: ${contentType || 'unknown'}. Use JPG, PNG, WEBP, or GIF.`);
   }
 
+  // Reject early from the Content-Length header when present, before reading the body - avoids
+  // fully buffering a large/malicious response into memory just to reject it afterward. Not
+  // airtight (a server can omit or lie about this header, or use chunked encoding), so the
+  // post-download byteLength check below still stands as the authoritative guard.
+  const contentLength = response.headers.get('content-length');
+  if (contentLength && Number(contentLength) > MAX_COVER_BYTES) {
+    throw new Error('Image is too large (max 8MB).');
+  }
+
   const buffer = Buffer.from(await response.arrayBuffer());
   if (buffer.byteLength > MAX_COVER_BYTES) {
     throw new Error('Image is too large (max 8MB).');
