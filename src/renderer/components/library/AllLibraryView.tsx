@@ -3,12 +3,15 @@ import type { EntryFilters, MediaType, Tag } from '@shared/types';
 import { MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 import { api } from '../../api/client';
 import { compareEntries } from '../../sortEntries';
+import { ContextMenu } from '../common/ContextMenu';
 import { EntryCard } from './EntryCard';
 import { FilterSortBar } from './FilterSortBar';
 
 interface Props {
   allTags: Tag[];
   onSelectEntry: (mediaType: MediaType, id: number) => void;
+  onEditEntry: (mediaType: MediaType, id: number) => void;
+  onDeleteEntry: (mediaType: MediaType, id: number) => void;
   /** Bumped by the parent after a save/delete elsewhere so this view refetches. */
   refreshKey: number;
 }
@@ -18,12 +21,13 @@ type CombinedEntry = Record<string, unknown> & { id: number; mediaType: MediaTyp
 /** Combined list spanning all 5 media types at once. Fetches each type's own list() in parallel
  *  and merges client-side - simplest approach that reuses every existing per-type API/filter/sort
  *  path unchanged, appropriate at the scale a personal local library actually reaches. */
-export function AllLibraryView({ allTags, onSelectEntry, refreshKey }: Props) {
+export function AllLibraryView({ allTags, onSelectEntry, onEditEntry, onDeleteEntry, refreshKey }: Props) {
   const [filters, setFilters] = useState<EntryFilters>({ sortBy: 'title', sortDir: 'asc' });
   const [activeTypes, setActiveTypes] = useState<MediaType[]>(MEDIA_TYPE_ORDER);
   const [entries, setEntries] = useState<CombinedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; mediaType: MediaType; id: number } | null>(null);
 
   const activeTypesKey = activeTypes.slice().sort().join(',');
   const filtersKey = JSON.stringify(filters);
@@ -94,10 +98,22 @@ export function AllLibraryView({ allTags, onSelectEntry, refreshKey }: Props) {
             mediaType={entry.mediaType}
             entry={entry}
             onClick={() => onSelectEntry(entry.mediaType, entry.id)}
+            onContextMenu={(evt) => setMenu({ x: evt.clientX, y: evt.clientY, mediaType: entry.mediaType, id: entry.id })}
             showTypeBadge
           />
         ))}
       </div>
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
+          items={[
+            { label: 'Edit', onClick: () => onEditEntry(menu.mediaType, menu.id) },
+            { label: 'Delete', danger: true, onClick: () => onDeleteEntry(menu.mediaType, menu.id) },
+          ]}
+        />
+      )}
     </div>
   );
 }

@@ -73,7 +73,12 @@ export default function App() {
 
   async function confirmDelete() {
     if (!pendingDelete) return;
-    const coverPath = detailEntry?.coverPath as string | null | undefined;
+    // Fetched fresh rather than read off `detailEntry` - delete can now be triggered straight from
+    // a grid card's right-click menu, with no detail view ever opened (detailEntry null or, worse,
+    // still holding a *different* previously-viewed entry's data, which would delete the wrong
+    // entry's cover file).
+    const entry = await api[pendingDelete.mediaType].get(pendingDelete.id);
+    const coverPath = (entry as { coverPath?: string | null } | null)?.coverPath;
     await api[pendingDelete.mediaType].delete(pendingDelete.id);
     if (coverPath) await api.covers.remove(coverPath);
     setPendingDelete(null);
@@ -91,13 +96,21 @@ export default function App() {
       <main className="app-content">
         {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
         {view.name === 'library' && activeMediaType === 'all' && (
-          <AllLibraryView allTags={tags} onSelectEntry={openDetail} refreshKey={refreshKey} />
+          <AllLibraryView
+            allTags={tags}
+            onSelectEntry={openDetail}
+            onEditEntry={openEditForm}
+            onDeleteEntry={handleDelete}
+            refreshKey={refreshKey}
+          />
         )}
         {view.name === 'library' && activeMediaType !== 'all' && (
           <LibraryView
             mediaType={activeMediaType}
             allTags={tags}
             onSelectEntry={openDetail}
+            onEditEntry={openEditForm}
+            onDeleteEntry={handleDelete}
             onAddClick={openCreateForm}
             refreshKey={refreshKey}
           />
