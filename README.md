@@ -13,7 +13,9 @@ A personal desktop app for tracking movies, TV shows, books, music, and games yo
 - Shared tags across all media types, plus per-type genre
 - Cover art, either picked from a local file or fetched from a URL
 - Autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys
-- Filter by status, rating range, genre, tags, year, and date range; search by title/notes; sort by multiple fields
+- Combined "All" view spanning every media type at once, alongside the five per-type views
+- Filter by status, rating range, genre, tags, year, and date range; full-text search by title/notes; sort by multiple fields
+- Right-click an entry card for quick Edit/Delete without opening it first
 - Export your whole library to a JSON file and import it back in (additive — never overwrites existing data)
 - Local-only storage — your data stays on your machine (SQLite)
 
@@ -46,6 +48,6 @@ Produces a platform installer/package via `electron-builder`.
 
 ## Project status
 
-Actively developed. Core tracking, rating, notes, filtering, cover art, external-database autofill (for two of five media types so far), and backup/restore are all in place. Not yet built: TMDB/RAWG autofill (needs API keys), cloud sync, stats/charts, and full-text search.
+Actively developed. Core tracking, rating, notes, filtering, full-text search, the combined "All" view, cover art, external-database autofill (for two of five media types so far), right-click quick actions, and backup/restore are all in place. Not yet built: TMDB/RAWG autofill (needs API keys), cloud sync, stats/charts, and saved filter presets.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes if you're contributing or exploring the code.
