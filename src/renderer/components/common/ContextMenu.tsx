@@ -35,6 +35,13 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   }, [x, y]);
 
   useEffect(() => {
+    // mousedown fires before click - without the containment check, clicking a menu item closed
+    // (unmounted) the menu on mousedown before its own click event ever got a chance to fire the
+    // item's onClick, making every item look like it did nothing.
+    function handleOutsidePointer(e: MouseEvent) {
+      if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
+      onClose();
+    }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
@@ -42,15 +49,15 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
     // fires after 'mousedown'/'mouseup' for that click) when this effect first runs - registering
     // immediately would let it close itself before ever being seen.
     const timer = setTimeout(() => {
-      document.addEventListener('mousedown', onClose);
-      document.addEventListener('contextmenu', onClose);
+      document.addEventListener('mousedown', handleOutsidePointer);
+      document.addEventListener('contextmenu', handleOutsidePointer);
       document.addEventListener('scroll', onClose, true);
     }, 0);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('mousedown', onClose);
-      document.removeEventListener('contextmenu', onClose);
+      document.removeEventListener('mousedown', handleOutsidePointer);
+      document.removeEventListener('contextmenu', handleOutsidePointer);
       document.removeEventListener('scroll', onClose, true);
       document.removeEventListener('keydown', handleKeyDown);
     };
