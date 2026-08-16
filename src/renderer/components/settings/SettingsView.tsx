@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { api } from '../../api/client';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
+import { useTheme } from '../../hooks/useTheme';
+import type { Theme } from '../../theme';
 
 interface Props {
   /** Called after a successful import so the caller can refresh anything cached from before (e.g. the shared tag list). */
   onImported: () => void;
 }
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
 export function SettingsView({ onImported }: Props) {
+  const { theme, setTheme } = useTheme();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +60,23 @@ export function SettingsView({ onImported }: Props) {
   return (
     <div className="settings-view">
       <h2>Settings</h2>
+
+      <section className="settings-section">
+        <h3>Appearance</h3>
+        <p className="hint">Choose how Media Journal looks, or follow your system setting.</p>
+        <div className="filter-group">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={theme === opt.value ? 'chip active' : 'chip'}
+              onClick={() => setTheme(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="settings-section">
         <h3>Data</h3>

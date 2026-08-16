@@ -12,8 +12,13 @@
   --chip-active-text: #ffffff;
 }
 
+/* Dark palette applies by OS preference by default. Settings > Appearance can override that with
+   an explicit `data-theme` attribute on <html> (see src/renderer/theme.ts): "light" guards it off
+   here even when the OS prefers dark, and the `[data-theme="dark"]` block below applies dark
+   regardless of OS preference. The values are duplicated between the two blocks rather than
+   shared, since CSS custom properties can't reference "whichever of these two selectors matched". */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #17171a;
     --bg-elevated: #212126;
     --text: #ececee;
@@ -26,6 +31,20 @@
     --chip-active-bg: var(--accent);
     --chip-active-text: #14141a;
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #17171a;
+  --bg-elevated: #212126;
+  --text: #ececee;
+  --text-muted: #9a9aa2;
+  --border: #34343a;
+  --accent: #7c88f0;
+  --accent-text: #14141a;
+  --danger: #ef6a6a;
+  --chip-bg: #2b2b31;
+  --chip-active-bg: var(--accent);
+  --chip-active-text: #14141a;
 }
 
 * {
@@ -459,6 +478,7 @@ button.danger {
   width: 32px;
   height: 46px;
   border-radius: 4px;
+  border: 1px solid var(--border);
   object-fit: cover;
   flex-shrink: 0;
   background: var(--chip-bg);
@@ -562,14 +582,16 @@ button.danger {
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  /* Heavier than the small corner/search-result thumbnails (1px) - a hairline reads as too thin
+     to register at this size (rendered ~220px wide, vs. ~32-58px for those). */
+  border: 2px solid var(--border);
   background: var(--bg);
 }
 
 .cover-art-field .cover-preview.empty {
   width: 100%;
   aspect-ratio: 2 / 3;
-  border: 1px dashed var(--border);
+  border: 2px dashed var(--border); /* matches the same tier's img border above */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -653,7 +675,7 @@ button.danger {
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border); /* heavier than small thumbnails - see cover-art-field's img rule */
   display: block;
 }
 
