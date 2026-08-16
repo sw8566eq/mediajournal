@@ -21,6 +21,7 @@ export const IPC = {
     list: 'tags:list',
     create: 'tags:create',
     delete: 'tags:delete',
+    rename: 'tags:rename',
   },
   covers: {
     pickFromDisk: 'covers:pickFromDisk',

@@ -46,10 +46,14 @@ export default defineConfig({
     },
   },
   test: {
-    // 'node', not 'jsdom': the initial test suite is scoped to pure logic with no DOM dependency
-    // (see CLAUDE.md's "Headless testing without a display" section) - repository/component tests
-    // that need a real DB connection or DOM are a separate, deliberately deferred investment.
+    // 'node' by default: most of the suite is pure logic with no DOM dependency (see CLAUDE.md's
+    // "Headless testing without a display" section) - repository tests that need a real DB
+    // connection are a separate, deliberately deferred investment (better-sqlite3's native binding
+    // is built against Electron's Node ABI, not host Node's, so a real DB connection can't be
+    // opened under plain `vitest run` regardless of environment). Component tests (.test.tsx) *do*
+    // need a DOM - each of those files opts into `jsdom` itself via a leading
+    // `// @vitest-environment jsdom` docblock, rather than flipping this default for everything.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 });

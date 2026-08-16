@@ -30,7 +30,7 @@ export default function App() {
   const [detailEntry, setDetailEntry] = useState<Record<string, unknown> | null>(null);
   const [formInitial, setFormInitial] = useState<Partial<EntryFormValues> | undefined>(undefined);
   const [pendingDelete, setPendingDelete] = useState<{ mediaType: MediaType; id: number } | null>(null);
-  const { tags, createTag, deleteTag, refetch: refetchTags } = useTags();
+  const { tags, createTag, deleteTag, renameTag, refetch: refetchTags } = useTags();
   const { presets, createPreset, deletePreset } = useFilterPresets();
 
   function selectMediaType(type: MediaType | 'all') {
@@ -112,6 +112,7 @@ export default function App() {
             onSavePreset={createPreset}
             onDeletePreset={deletePreset}
             onDeleteTag={deleteTag}
+            onRenameTag={renameTag}
           />
         )}
         {view.name === 'library' && activeMediaType !== 'all' && (
@@ -127,6 +128,7 @@ export default function App() {
             onSavePreset={createPreset}
             onDeletePreset={deletePreset}
             onDeleteTag={deleteTag}
+            onRenameTag={renameTag}
           />
         )}
         {view.name === 'form' && (

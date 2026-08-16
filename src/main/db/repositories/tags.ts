@@ -19,4 +19,12 @@ export const tagRepo = {
     // ON DELETE CASCADE on each junction table removes any links to this tag.
     getDb().prepare('DELETE FROM tags WHERE id = ?').run(id);
   },
+
+  rename(id: number, name: string): Tag {
+    // `tags.name` is UNIQUE COLLATE NOCASE (see migrations/0001_init.sql) - renaming to a name
+    // that collides case-insensitively with a *different* existing tag throws here, letting the
+    // constraint violation propagate as a normal error rather than needing a defensive pre-check.
+    getDb().prepare('UPDATE tags SET name = ? WHERE id = ?').run(name, id);
+    return { id, name };
+  },
 };

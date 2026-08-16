@@ -19,6 +19,7 @@ interface Props {
   onSavePreset: (data: NewFilterPreset) => void;
   onDeletePreset: (id: number) => void;
   onDeleteTag: (id: number) => void;
+  onRenameTag: (id: number, name: string) => Promise<void>;
 }
 
 export function LibraryView({
@@ -33,6 +34,7 @@ export function LibraryView({
   onSavePreset,
   onDeletePreset,
   onDeleteTag,
+  onRenameTag,
 }: Props) {
   const [filters, setFilters] = useState<EntryFilters>({ sortBy: 'title', sortDir: 'asc' });
   const { entries, loading, error, refetch } = useEntries(mediaType, filters);
@@ -68,6 +70,7 @@ export function LibraryView({
           onDelete: onDeletePreset,
         }}
         onDeleteTag={onDeleteTag}
+        onRenameTag={onRenameTag}
       />
       <SavePresetDialog
         open={saveDialogOpen}

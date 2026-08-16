@@ -3,6 +3,7 @@ import type { EntryFilters, EntryStatus, FilterPreset, MediaType, Tag } from '@s
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER, STATUS_LABELS } from '../../mediaTypeConfig';
 import { ContextMenu } from '../common/ContextMenu';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { TextPromptDialog } from '../common/TextPromptDialog';
 
 interface Props {
   filters: EntryFilters;
@@ -26,6 +27,11 @@ interface Props {
    *  derived from the current results), so it's the only reachable place to clean up an orphaned
    *  tag that isn't assigned to anything. */
   onDeleteTag: (id: number) => void;
+  /** Renames a tag globally. Unlike delete, this can't cause a foreign-key violation on an entry
+   *  currently being edited elsewhere (the tag id is unchanged, just its name), so it doesn't need
+   *  the same "only reachable from here" reasoning - it's just kept alongside delete on the same
+   *  right-click menu for now, since that's already a proven, discoverable surface. */
+  onRenameTag: (id: number, name: string) => Promise<void>;
 }
 
 const STATUS_VALUES = Object.keys(STATUS_LABELS) as EntryStatus[];
@@ -39,6 +45,7 @@ export function FilterSortBar({
   mediaTypeFilter,
   presets,
   onDeleteTag,
+  onRenameTag,
 }: Props) {
   // Local, UI-only: which preset the dropdown is currently showing as selected. Not derived from
   // `filters` since a preset is a one-shot loader, not a persistent link - editing any filter
@@ -47,6 +54,8 @@ export function FilterSortBar({
 
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; id: number; name: string } | null>(null);
   const [pendingTagDelete, setPendingTagDelete] = useState<{ id: number; name: string } | null>(null);
+  const [pendingTagRename, setPendingTagRename] = useState<{ id: number; name: string } | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   function confirmTagDelete() {
     if (!pendingTagDelete) return;
@@ -58,6 +67,20 @@ export function FilterSortBar({
       onChange({ ...filters, tagIds: next.length ? next : undefined });
     }
     setPendingTagDelete(null);
+  }
+
+  async function submitTagRename(name: string) {
+    if (!pendingTagRename) return;
+    try {
+      await onRenameTag(pendingTagRename.id, name);
+      setPendingTagRename(null);
+      setRenameError(null);
+    } catch (err) {
+      // Most likely tags.name's UNIQUE COLLATE NOCASE constraint (renaming to a name that
+      // collides, case-insensitively, with a different existing tag) - keep the dialog open with
+      // the error shown rather than closing it as if the rename had actually happened.
+      setRenameError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   // Exclusive: an entry can only actually have one status, so clicking a chip selects just that
@@ -174,6 +197,47 @@ export function FilterSortBar({
         />
       </div>
 
+      <div className="filter-group year-range">
+        <input
+          type="number"
+          className="rating-bound"
+          placeholder="Year min"
+          value={filters.yearMin ?? ''}
+          onChange={(e) => onChange({ ...filters, yearMin: e.target.value ? Number(e.target.value) : undefined })}
+        />
+        <span>–</span>
+        <input
+          type="number"
+          className="rating-bound"
+          placeholder="Year max"
+          value={filters.yearMax ?? ''}
+          onChange={(e) => onChange({ ...filters, yearMax: e.target.value ? Number(e.target.value) : undefined })}
+        />
+      </div>
+
+      {/* Not a min/max pair on one field like rating/year above - dateFrom constrains startDate,
+          dateTo constrains finishDate (two independent columns, see queryBuilder.ts's buildWhere).
+          Presenting them as an unlabeled em-dash pair would wrongly imply one range on one field,
+          so these get their own visible labels instead. */}
+      <div className="filter-group date-range">
+        <label>
+          <span>Start Date</span>
+          <input
+            type="date"
+            value={filters.dateFrom ?? ''}
+            onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || undefined })}
+          />
+        </label>
+        <label>
+          <span>Finish Date</span>
+          <input
+            type="date"
+            value={filters.dateTo ?? ''}
+            onChange={(e) => onChange({ ...filters, dateTo: e.target.value || undefined })}
+          />
+        </label>
+      </div>
+
       <select
         value={filters.sortBy ?? 'title'}
         onChange={(e) => onChange({ ...filters, sortBy: e.target.value as EntryFilters['sortBy'] })}
@@ -247,6 +311,13 @@ export function FilterSortBar({
           onClose={() => setTagMenu(null)}
           items={[
             {
+              label: 'Rename Tag',
+              onClick: () => {
+                setRenameError(null);
+                setPendingTagRename({ id: tagMenu.id, name: tagMenu.name });
+              },
+            },
+            {
               label: 'Delete Tag',
               danger: true,
               onClick: () => setPendingTagDelete({ id: tagMenu.id, name: tagMenu.name }),
@@ -259,6 +330,18 @@ export function FilterSortBar({
         message={`Delete tag "${pendingTagDelete?.name}"? This removes it from every entry that has it.`}
         onConfirm={confirmTagDelete}
         onCancel={() => setPendingTagDelete(null)}
+      />
+      <TextPromptDialog
+        open={pendingTagRename !== null}
+        title={`Rename tag "${pendingTagRename?.name}"`}
+        initialValue={pendingTagRename?.name ?? ''}
+        submitLabel="Rename"
+        error={renameError}
+        onSave={submitTagRename}
+        onCancel={() => {
+          setPendingTagRename(null);
+          setRenameError(null);
+        }}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { TextPromptDialog } from '../common/TextPromptDialog';
 
 interface Props {
   open: boolean;
@@ -6,48 +6,8 @@ interface Props {
   onCancel: () => void;
 }
 
-/**
- * Small modal for naming a new filter preset. A new component rather than reusing
- * `ConfirmDialog` - that one's contract is narrower (message + confirm/cancel, no text input).
- */
+/** Thin wrapper around the generic TextPromptDialog - kept as its own named component so callers
+ *  (LibraryView/AllLibraryView) don't need to know or care that it's backed by a shared dialog. */
 export function SavePresetDialog({ open, onSave, onCancel }: Props) {
-  const [name, setName] = useState('');
-
-  if (!open) return null;
-
-  function submit() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    onSave(trimmed);
-    setName('');
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <p>Save current filters as a preset</p>
-        <label className="field">
-          <span>Name</span>
-          <input
-            type="text"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit();
-              if (e.key === 'Escape') onCancel();
-            }}
-          />
-        </label>
-        <div className="form-actions">
-          <button type="button" onClick={onCancel}>
-            Cancel
-          </button>
-          <button type="button" className="primary" disabled={!name.trim()} onClick={submit}>
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <TextPromptDialog open={open} title="Save current filters as a preset" onSave={onSave} onCancel={onCancel} />;
 }

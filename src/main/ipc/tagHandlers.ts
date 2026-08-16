@@ -12,4 +12,9 @@ export function registerTagHandlers(): void {
   });
 
   ipcMain.handle(IPC.tags.delete, (_event, id: number) => tagRepo.delete(id));
+
+  ipcMain.handle(IPC.tags.rename, (_event, payload: { id: number; name: unknown }) => {
+    const name = TagNameSchema.parse(payload.name);
+    return tagRepo.rename(payload.id, name);
+  });
 }

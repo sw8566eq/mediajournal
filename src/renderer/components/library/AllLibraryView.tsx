@@ -19,6 +19,7 @@ interface Props {
   onSavePreset: (data: NewFilterPreset) => void;
   onDeletePreset: (id: number) => void;
   onDeleteTag: (id: number) => void;
+  onRenameTag: (id: number, name: string) => Promise<void>;
 }
 
 type CombinedEntry = Record<string, unknown> & { id: number; mediaType: MediaType };
@@ -36,6 +37,7 @@ export function AllLibraryView({
   onSavePreset,
   onDeletePreset,
   onDeleteTag,
+  onRenameTag,
 }: Props) {
   const [filters, setFilters] = useState<EntryFilters>({ sortBy: 'title', sortDir: 'asc' });
   const [activeTypes, setActiveTypes] = useState<MediaType[]>(MEDIA_TYPE_ORDER);
@@ -111,6 +113,7 @@ export function AllLibraryView({
           onDelete: onDeletePreset,
         }}
         onDeleteTag={onDeleteTag}
+        onRenameTag={onRenameTag}
       />
       <SavePresetDialog
         open={saveDialogOpen}

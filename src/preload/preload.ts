@@ -31,6 +31,7 @@ const api: MediaJournalAPI = {
     list: () => ipcRenderer.invoke(IPC.tags.list),
     create: (name: string) => ipcRenderer.invoke(IPC.tags.create, name),
     delete: (id: number) => ipcRenderer.invoke(IPC.tags.delete, id),
+    rename: (id: number, name: string) => ipcRenderer.invoke(IPC.tags.rename, { id, name }),
   },
   covers: {
     pickFromDisk: () => ipcRenderer.invoke(IPC.covers.pickFromDisk),

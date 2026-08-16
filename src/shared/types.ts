@@ -130,6 +130,7 @@ export interface TagAPI {
   list: () => Promise<Tag[]>;
   create: (name: string) => Promise<Tag>;
   delete: (id: number) => Promise<void>;
+  rename: (id: number, name: string) => Promise<Tag>;
 }
 
 export interface CoverAPI {

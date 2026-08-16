@@ -172,21 +172,30 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
             value={values.status}
             onChange={(v) => {
               set('status', v);
-              // In-progress means not finished yet - drop any finish date rather than leaving a
-              // stale one hidden (and still saved) once the field below disappears.
-              if (v === 'in_progress' && values.finishDate) set('finishDate', null);
+              // Neither date makes sense for something merely planned (not started yet), and
+              // in-progress means not finished yet - drop whichever date(s) no longer apply
+              // rather than leaving a stale one hidden (and still saved) once the field(s) below
+              // disappear.
+              if (v === 'planned') {
+                if (values.startDate) set('startDate', null);
+                if (values.finishDate) set('finishDate', null);
+              } else if (v === 'in_progress' && values.finishDate) {
+                set('finishDate', null);
+              }
             }}
           />
 
-          <label className="field">
-            <span>Start Date</span>
-            <input
-              type="date"
-              value={values.startDate ?? ''}
-              onChange={(e) => set('startDate', e.target.value || null)}
-            />
-          </label>
-          {values.status !== 'in_progress' && (
+          {values.status !== 'planned' && (
+            <label className="field">
+              <span>Start Date</span>
+              <input
+                type="date"
+                value={values.startDate ?? ''}
+                onChange={(e) => set('startDate', e.target.value || null)}
+              />
+            </label>
+          )}
+          {values.status !== 'in_progress' && values.status !== 'planned' && (
             <label className="field">
               <span>Finish Date</span>
               <input

@@ -33,5 +33,16 @@ export function useTags() {
     [refetch],
   );
 
-  return { tags, loading, refetch, createTag, deleteTag };
+  const renameTag = useCallback(
+    async (id: number, name: string) => {
+      // No try/catch here (matches createTag/deleteTag) - a rename can legitimately fail (the
+      // UNIQUE COLLATE NOCASE constraint on tags.name), and that rejection needs to propagate to
+      // the caller so it can be surfaced in the rename dialog rather than swallowed.
+      await api.tags.rename(id, name);
+      await refetch();
+    },
+    [refetch],
+  );
+
+  return { tags, loading, refetch, createTag, deleteTag, renameTag };
 }
