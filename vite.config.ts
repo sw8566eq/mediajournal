@@ -45,4 +45,11 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, 'src/shared'),
     },
   },
+  test: {
+    // 'node', not 'jsdom': the initial test suite is scoped to pure logic with no DOM dependency
+    // (see CLAUDE.md's "Headless testing without a display" section) - repository/component tests
+    // that need a real DB connection or DOM are a separate, deliberately deferred investment.
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
 });

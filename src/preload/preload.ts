@@ -7,6 +7,7 @@ import type {
   MediaJournalAPI,
   MediaType,
   MediaTypeAPI,
+  NewFilterPreset,
 } from '@shared/types';
 
 function buildMediaAPI<T extends MediaType>(mediaType: T): MediaTypeAPI<T> {
@@ -43,6 +44,11 @@ const api: MediaJournalAPI = {
   backup: {
     exportLibrary: () => ipcRenderer.invoke(IPC.backup.export),
     importLibrary: () => ipcRenderer.invoke(IPC.backup.import),
+  },
+  filterPresets: {
+    list: () => ipcRenderer.invoke(IPC.filterPresets.list),
+    create: (data: NewFilterPreset) => ipcRenderer.invoke(IPC.filterPresets.create, data),
+    delete: (id: number) => ipcRenderer.invoke(IPC.filterPresets.delete, id),
   },
 };
 

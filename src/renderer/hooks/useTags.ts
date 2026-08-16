@@ -25,5 +25,13 @@ export function useTags() {
     [refetch],
   );
 
-  return { tags, loading, refetch, createTag };
+  const deleteTag = useCallback(
+    async (id: number) => {
+      await api.tags.delete(id);
+      await refetch();
+    },
+    [refetch],
+  );
+
+  return { tags, loading, refetch, createTag, deleteTag };
 }

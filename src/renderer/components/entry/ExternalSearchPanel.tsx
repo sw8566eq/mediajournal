@@ -76,7 +76,7 @@ export function ExternalSearchPanel({ mediaType, initialQuery, onApplyResult }: 
 
       {notConfigured && (
         <div className="hint">
-          Search for this media type isn't set up yet (needs an {EXTERNAL_PROVIDER_LABELS[mediaType]} API key) —
+          Search for this media type isn&apos;t set up yet (needs an {EXTERNAL_PROVIDER_LABELS[mediaType]} API key) —
           coming soon.
         </div>
       )}

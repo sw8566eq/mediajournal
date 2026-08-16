@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { EntryFilters, MediaType, Tag } from '@shared/types';
+import type { EntryFilters, FilterPreset, MediaType, NewFilterPreset, Tag } from '@shared/types';
 import { MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 import { api } from '../../api/client';
 import { compareEntries } from '../../sortEntries';
 import { ContextMenu } from '../common/ContextMenu';
 import { EntryCard } from './EntryCard';
 import { FilterSortBar } from './FilterSortBar';
+import { SavePresetDialog } from './SavePresetDialog';
 
 interface Props {
   allTags: Tag[];
@@ -14,6 +15,10 @@ interface Props {
   onDeleteEntry: (mediaType: MediaType, id: number) => void;
   /** Bumped by the parent after a save/delete elsewhere so this view refetches. */
   refreshKey: number;
+  presets: FilterPreset[];
+  onSavePreset: (data: NewFilterPreset) => void;
+  onDeletePreset: (id: number) => void;
+  onDeleteTag: (id: number) => void;
 }
 
 type CombinedEntry = Record<string, unknown> & { id: number; mediaType: MediaType };
@@ -21,13 +26,24 @@ type CombinedEntry = Record<string, unknown> & { id: number; mediaType: MediaTyp
 /** Combined list spanning all 5 media types at once. Fetches each type's own list() in parallel
  *  and merges client-side - simplest approach that reuses every existing per-type API/filter/sort
  *  path unchanged, appropriate at the scale a personal local library actually reaches. */
-export function AllLibraryView({ allTags, onSelectEntry, onEditEntry, onDeleteEntry, refreshKey }: Props) {
+export function AllLibraryView({
+  allTags,
+  onSelectEntry,
+  onEditEntry,
+  onDeleteEntry,
+  refreshKey,
+  presets,
+  onSavePreset,
+  onDeletePreset,
+  onDeleteTag,
+}: Props) {
   const [filters, setFilters] = useState<EntryFilters>({ sortBy: 'title', sortDir: 'asc' });
   const [activeTypes, setActiveTypes] = useState<MediaType[]>(MEDIA_TYPE_ORDER);
   const [entries, setEntries] = useState<CombinedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; mediaType: MediaType; id: number } | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   const activeTypesKey = activeTypes.slice().sort().join(',');
   const filtersKey = JSON.stringify(filters);
@@ -85,6 +101,24 @@ export function AllLibraryView({ allTags, onSelectEntry, onEditEntry, onDeleteEn
         availableGenres={availableGenres}
         availableTags={allTags}
         mediaTypeFilter={{ activeTypes, onToggle: toggleType }}
+        presets={{
+          items: presets,
+          onLoad: (preset) => {
+            setFilters(preset.filters);
+            setActiveTypes(preset.activeTypes ?? MEDIA_TYPE_ORDER);
+          },
+          onSaveClick: () => setSaveDialogOpen(true),
+          onDelete: onDeletePreset,
+        }}
+        onDeleteTag={onDeleteTag}
+      />
+      <SavePresetDialog
+        open={saveDialogOpen}
+        onCancel={() => setSaveDialogOpen(false)}
+        onSave={(name) => {
+          onSavePreset({ name, filters, activeTypes });
+          setSaveDialogOpen(false);
+        }}
       />
       {loading && <div className="status-line">Loading…</div>}
       {error && <div className="error-banner">{error}</div>}

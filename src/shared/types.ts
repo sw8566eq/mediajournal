@@ -164,6 +164,24 @@ export interface ExternalSearchAPI {
   search: (mediaType: MediaType, query: string) => Promise<ExternalSearchResponse>;
 }
 
+/** A saved, named snapshot of a filter-bar combination (see EntryFilters), reloadable later. */
+export interface FilterPreset {
+  id: number;
+  name: string;
+  filters: EntryFilters;
+  /** Only meaningful for presets saved from the combined "All" view; null otherwise. */
+  activeTypes: MediaType[] | null;
+  createdAt: string;
+}
+
+export type NewFilterPreset = { name: string; filters: EntryFilters; activeTypes?: MediaType[] | null };
+
+export interface FilterPresetAPI {
+  list: () => Promise<FilterPreset[]>;
+  create: (data: NewFilterPreset) => Promise<FilterPreset>;
+  delete: (id: number) => Promise<void>;
+}
+
 /** Count of rows processed per media type (plus tags) by an import. */
 export type ImportSummary = Record<MediaType, number> & { tags: number };
 
@@ -184,4 +202,5 @@ export interface MediaJournalAPI {
   covers: CoverAPI;
   externalSearch: ExternalSearchAPI;
   backup: BackupAPI;
+  filterPresets: FilterPresetAPI;
 }

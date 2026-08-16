@@ -56,7 +56,7 @@ export function SettingsView({ onImported }: Props) {
         <h3>Data</h3>
         <p className="hint">
           Export your library to a JSON file, or import a previously-exported file. Importing always adds new
-          entries - it never deletes or overwrites what's already here. Cover art isn't included in exports, only
+          entries - it never deletes or overwrites what&apos;s already here. Cover art isn&apos;t included in exports, only
           your entries, ratings, notes, and tags.
         </p>
 

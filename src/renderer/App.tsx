@@ -7,14 +7,17 @@ import { EntryForm, type EntryFormValues } from './components/entry/EntryForm';
 import { EntryDetail } from './components/entry/EntryDetail';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { SettingsView } from './components/settings/SettingsView';
+import { StatsView } from './components/stats/StatsView';
 import { useTags } from './hooks/useTags';
+import { useFilterPresets } from './hooks/useFilterPresets';
 import { api } from './api/client';
 
 type View =
   | { name: 'library' }
   | { name: 'form'; mediaType: MediaType; entryId: number | null }
   | { name: 'detail'; mediaType: MediaType; entryId: number }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  | { name: 'stats' };
 
 export default function App() {
   // The sidebar's current selection - 'all' spans every media type in one combined view.
@@ -27,7 +30,8 @@ export default function App() {
   const [detailEntry, setDetailEntry] = useState<Record<string, unknown> | null>(null);
   const [formInitial, setFormInitial] = useState<Partial<EntryFormValues> | undefined>(undefined);
   const [pendingDelete, setPendingDelete] = useState<{ mediaType: MediaType; id: number } | null>(null);
-  const { tags, createTag, refetch: refetchTags } = useTags();
+  const { tags, createTag, deleteTag, refetch: refetchTags } = useTags();
+  const { presets, createPreset, deletePreset } = useFilterPresets();
 
   function selectMediaType(type: MediaType | 'all') {
     setActiveMediaType(type);
@@ -49,7 +53,7 @@ export default function App() {
   async function openEditForm(mediaType: MediaType, id: number) {
     const entry = await api[mediaType].get(id);
     if (!entry) return;
-    const { tags: entryTags, id: _id, createdAt, updatedAt, ...rest } = entry as unknown as Record<string, unknown> & {
+    const { tags: entryTags, id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = entry as unknown as Record<string, unknown> & {
       tags: Tag[];
     };
     setFormInitial({ ...rest, tagIds: entryTags.map((t) => t.id) } as Partial<EntryFormValues>);
@@ -89,12 +93,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        active={view.name === 'settings' ? 'settings' : activeMediaType}
+        active={view.name === 'settings' || view.name === 'stats' ? view.name : activeMediaType}
         onSelect={selectMediaType}
         onSelectSettings={() => setView({ name: 'settings' })}
+        onSelectStats={() => setView({ name: 'stats' })}
       />
       <main className="app-content">
         {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
+        {view.name === 'stats' && <StatsView />}
         {view.name === 'library' && activeMediaType === 'all' && (
           <AllLibraryView
             allTags={tags}
@@ -102,6 +108,10 @@ export default function App() {
             onEditEntry={openEditForm}
             onDeleteEntry={handleDelete}
             refreshKey={refreshKey}
+            presets={presets}
+            onSavePreset={createPreset}
+            onDeletePreset={deletePreset}
+            onDeleteTag={deleteTag}
           />
         )}
         {view.name === 'library' && activeMediaType !== 'all' && (
@@ -113,6 +123,10 @@ export default function App() {
             onDeleteEntry={handleDelete}
             onAddClick={openCreateForm}
             refreshKey={refreshKey}
+            presets={presets}
+            onSavePreset={createPreset}
+            onDeletePreset={deletePreset}
+            onDeleteTag={deleteTag}
           />
         )}
         {view.name === 'form' && (

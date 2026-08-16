@@ -1,5 +1,8 @@
-import type { EntryFilters, EntryStatus, MediaType, Tag } from '@shared/types';
+import { useState } from 'react';
+import type { EntryFilters, EntryStatus, FilterPreset, MediaType, Tag } from '@shared/types';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER, STATUS_LABELS } from '../../mediaTypeConfig';
+import { ContextMenu } from '../common/ContextMenu';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface Props {
   filters: EntryFilters;
@@ -10,11 +13,53 @@ interface Props {
   onAddClick?: () => void;
   /** Only passed by the "All" view: which media types to include in the combined list. */
   mediaTypeFilter?: { activeTypes: MediaType[]; onToggle: (type: MediaType) => void };
+  /** Omit to hide the saved-presets controls entirely. */
+  presets?: {
+    items: FilterPreset[];
+    onLoad: (preset: FilterPreset) => void;
+    onSaveClick: () => void;
+    onDelete: (id: number) => void;
+  };
+  /** Deletes a tag globally (from every entry that has it, across all media types) - the tag chips
+   *  here are the one place the app shows every tag regardless of whether any *currently loaded*
+   *  entry has it (availableTags is the full shared tag list, unlike availableGenres which is
+   *  derived from the current results), so it's the only reachable place to clean up an orphaned
+   *  tag that isn't assigned to anything. */
+  onDeleteTag: (id: number) => void;
 }
 
 const STATUS_VALUES = Object.keys(STATUS_LABELS) as EntryStatus[];
 
-export function FilterSortBar({ filters, onChange, availableGenres, availableTags, onAddClick, mediaTypeFilter }: Props) {
+export function FilterSortBar({
+  filters,
+  onChange,
+  availableGenres,
+  availableTags,
+  onAddClick,
+  mediaTypeFilter,
+  presets,
+  onDeleteTag,
+}: Props) {
+  // Local, UI-only: which preset the dropdown is currently showing as selected. Not derived from
+  // `filters` since a preset is a one-shot loader, not a persistent link - editing any filter
+  // afterward organically detaches from it without this needing to track that.
+  const [selectedPresetId, setSelectedPresetId] = useState<number | ''>('');
+
+  const [tagMenu, setTagMenu] = useState<{ x: number; y: number; id: number; name: string } | null>(null);
+  const [pendingTagDelete, setPendingTagDelete] = useState<{ id: number; name: string } | null>(null);
+
+  function confirmTagDelete() {
+    if (!pendingTagDelete) return;
+    onDeleteTag(pendingTagDelete.id);
+    // Drop it from the active filter too, if it was selected - it'd otherwise keep filtering on a
+    // tag id that no longer exists (harmless - just yields zero rows - but stale and confusing).
+    if (filters.tagIds?.includes(pendingTagDelete.id)) {
+      const next = filters.tagIds.filter((id) => id !== pendingTagDelete.id);
+      onChange({ ...filters, tagIds: next.length ? next : undefined });
+    }
+    setPendingTagDelete(null);
+  }
+
   // Exclusive: an entry can only actually have one status, so clicking a chip selects just that
   // one (clicking the already-active one clears the filter back to "any status").
   function selectStatus(status: EntryStatus) {
@@ -90,6 +135,10 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
               type="button"
               className={(filters.tagIds ?? []).includes(tag.id) ? 'chip active' : 'chip'}
               onClick={() => toggleTag(tag.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setTagMenu({ x: e.clientX, y: e.clientY, id: tag.id, name: tag.name });
+              }}
             >
               {tag.name}
             </button>
@@ -146,11 +195,71 @@ export function FilterSortBar({ filters, onChange, availableGenres, availableTag
         {filters.sortDir === 'desc' ? '↓' : '↑'}
       </button>
 
+      {presets && (
+        <div className="filter-group presets-group">
+          <select
+            value={selectedPresetId}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : '';
+              setSelectedPresetId(id);
+              if (id !== '') {
+                const preset = presets.items.find((p) => p.id === id);
+                if (preset) presets.onLoad(preset);
+              }
+            }}
+          >
+            <option value="">Load preset…</option>
+            {presets.items.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+          {selectedPresetId !== '' && (
+            <button
+              type="button"
+              className="sort-dir"
+              title="Delete this preset"
+              onClick={() => {
+                presets.onDelete(selectedPresetId);
+                setSelectedPresetId('');
+              }}
+            >
+              🗑
+            </button>
+          )}
+          <button type="button" onClick={presets.onSaveClick}>
+            Save preset…
+          </button>
+        </div>
+      )}
+
       {onAddClick && (
         <button type="button" className="primary add-entry-btn" onClick={onAddClick}>
           + Add Entry
         </button>
       )}
+
+      {tagMenu && (
+        <ContextMenu
+          x={tagMenu.x}
+          y={tagMenu.y}
+          onClose={() => setTagMenu(null)}
+          items={[
+            {
+              label: 'Delete Tag',
+              danger: true,
+              onClick: () => setPendingTagDelete({ id: tagMenu.id, name: tagMenu.name }),
+            },
+          ]}
+        />
+      )}
+      <ConfirmDialog
+        open={pendingTagDelete !== null}
+        message={`Delete tag "${pendingTagDelete?.name}"? This removes it from every entry that has it.`}
+        onConfirm={confirmTagDelete}
+        onCancel={() => setPendingTagDelete(null)}
+      />
     </div>
   );
 }

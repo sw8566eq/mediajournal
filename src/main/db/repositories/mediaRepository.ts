@@ -2,12 +2,9 @@ import type Database from 'better-sqlite3';
 import { getDb } from '../connection';
 import type { BaseEntryFields, EntryFilters, EntryInput, EntryUpdate, MediaType, Tag } from '@shared/types';
 import { SORT_FIELDS } from '@shared/sortFields';
+import { buildWhere, type ColumnMap } from './queryBuilder';
 
-/** Maps a DB column name (snake_case) to its TS field name (camelCase) and back. */
-interface ColumnMap {
-  dbCol: string;
-  tsKey: string;
-}
+export { buildWhere } from './queryBuilder';
 
 const BASE_COLUMNS: ColumnMap[] = [
   { dbCol: 'title', tsKey: 'title' },
@@ -26,23 +23,6 @@ const BASE_COLUMNS: ColumnMap[] = [
 const SORT_COLUMN: Record<NonNullable<EntryFilters['sortBy']>, string> = Object.fromEntries(
   SORT_FIELDS.map((f) => [f.value, f.dbColumn]),
 ) as Record<NonNullable<EntryFilters['sortBy']>, string>;
-
-/**
- * Builds an FTS5 MATCH query for a free-text search box: each whitespace-separated word becomes
- * a quoted, escaped prefix match (`"word"*`), ANDed together (FTS5's default between bareword
- * match expressions). This keeps the "partial word while typing" feel of the old LIKE-based
- * search while gaining real word-boundary matching. Quoting every token means arbitrary user
- * input (including FTS5 query-syntax characters like `"`/`*`/`:`/`-`) can never produce a MATCH
- * syntax error - `"` is escaped by doubling it, same as SQL string literals.
- */
-function toFtsQuery(raw: string): string {
-  return raw
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => `"${word.replace(/"/g, '""')}"*`)
-    .join(' ');
-}
 
 export interface MediaRepositoryConfig<T extends MediaType> {
   mediaType: T;
@@ -93,64 +73,10 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
     for (const tagId of tagIds) insert.run(id, tagId);
   }
 
-  function buildWhere(filters: EntryFilters): { clause: string; params: unknown[] } {
-    const clauses: string[] = [];
-    const params: unknown[] = [];
-
-    if (filters.status?.length) {
-      clauses.push(`status IN (${filters.status.map(() => '?').join(',')})`);
-      params.push(...filters.status);
-    }
-    if (filters.ratingMin !== undefined) {
-      clauses.push('rating_tenths >= ?');
-      params.push(filters.ratingMin);
-    }
-    if (filters.ratingMax !== undefined) {
-      clauses.push('rating_tenths <= ?');
-      params.push(filters.ratingMax);
-    }
-    if (filters.genre) {
-      clauses.push('genre = ? COLLATE NOCASE');
-      params.push(filters.genre);
-    }
-    if (filters.yearMin !== undefined && typeColumns.some((c) => c.tsKey === 'year')) {
-      clauses.push('year >= ?');
-      params.push(filters.yearMin);
-    }
-    if (filters.yearMax !== undefined && typeColumns.some((c) => c.tsKey === 'year')) {
-      clauses.push('year <= ?');
-      params.push(filters.yearMax);
-    }
-    if (filters.dateFrom) {
-      clauses.push('start_date >= ?');
-      params.push(filters.dateFrom);
-    }
-    if (filters.dateTo) {
-      clauses.push('finish_date <= ?');
-      params.push(filters.dateTo);
-    }
-    if (filters.search) {
-      const ftsQuery = toFtsQuery(filters.search);
-      if (ftsQuery) {
-        clauses.push(`${table}.id IN (SELECT rowid FROM ${table}_fts WHERE ${table}_fts MATCH ?)`);
-        params.push(ftsQuery);
-      }
-    }
-    if (filters.tagIds?.length) {
-      // Entries must have ALL of the given tags: one EXISTS clause per tag id.
-      for (const tagId of filters.tagIds) {
-        clauses.push(`EXISTS (SELECT 1 FROM ${junctionTable} jt WHERE jt.${junctionColumn} = ${table}.id AND jt.tag_id = ?)`);
-        params.push(tagId);
-      }
-    }
-
-    return { clause: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '', params };
-  }
-
   return {
     list(filters: EntryFilters = {}) {
       const db = getDb();
-      const { clause, params } = buildWhere(filters);
+      const { clause, params } = buildWhere(filters, { table, junctionTable, junctionColumn, typeColumns });
       const sortCol = filters.sortBy ? SORT_COLUMN[filters.sortBy] : 'title';
       const sortDir = filters.sortDir === 'desc' ? 'DESC' : 'ASC';
       const rows = db

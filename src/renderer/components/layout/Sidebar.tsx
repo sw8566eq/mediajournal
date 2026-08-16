@@ -2,12 +2,13 @@ import type { MediaType } from '@shared/types';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 
 interface Props {
-  active: MediaType | 'all' | 'settings';
+  active: MediaType | 'all' | 'settings' | 'stats';
   onSelect: (type: MediaType | 'all') => void;
   onSelectSettings: () => void;
+  onSelectStats: () => void;
 }
 
-export function Sidebar({ active, onSelect, onSelectSettings }: Props) {
+export function Sidebar({ active, onSelect, onSelectSettings, onSelectStats }: Props) {
   return (
     <nav className="sidebar">
       <div className="sidebar-title">Media Journal</div>
@@ -30,6 +31,9 @@ export function Sidebar({ active, onSelect, onSelectSettings }: Props) {
         ))}
       </ul>
       <div className="sidebar-footer">
+        <button type="button" className={active === 'stats' ? 'nav-item active' : 'nav-item'} onClick={onSelectStats}>
+          📊 Stats
+        </button>
         <button
           type="button"
           className={active === 'settings' ? 'nav-item active' : 'nav-item'}

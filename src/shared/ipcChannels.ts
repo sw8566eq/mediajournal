@@ -34,6 +34,11 @@ export const IPC = {
     export: 'backup:export',
     import: 'backup:import',
   },
+  filterPresets: {
+    list: 'filterPresets:list',
+    create: 'filterPresets:create',
+    delete: 'filterPresets:delete',
+  },
 } as const;
 
 /** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` runs the postinstall step (electron-builder install-app-deps), which rebuilds
+      # better-sqlite3's native binding against Electron's Node ABI - this suite doesn't touch
+      # that binding directly (see vite.config.ts's test config comment), but the rebuild has to
+      # succeed for the install itself to complete.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { EntryFilters, MediaType, Tag } from '@shared/types';
+import type { EntryFilters, FilterPreset, MediaType, NewFilterPreset, Tag } from '@shared/types';
 import { useEntries } from '../../hooks/useEntries';
 import { ContextMenu } from '../common/ContextMenu';
 import { EntryCard } from './EntryCard';
 import { FilterSortBar } from './FilterSortBar';
+import { SavePresetDialog } from './SavePresetDialog';
 
 interface Props {
   mediaType: MediaType;
@@ -14,12 +15,29 @@ interface Props {
   onAddClick: () => void;
   /** Bumped by the parent after a save/delete elsewhere so this view refetches. */
   refreshKey: number;
+  presets: FilterPreset[];
+  onSavePreset: (data: NewFilterPreset) => void;
+  onDeletePreset: (id: number) => void;
+  onDeleteTag: (id: number) => void;
 }
 
-export function LibraryView({ mediaType, allTags, onSelectEntry, onEditEntry, onDeleteEntry, onAddClick, refreshKey }: Props) {
+export function LibraryView({
+  mediaType,
+  allTags,
+  onSelectEntry,
+  onEditEntry,
+  onDeleteEntry,
+  onAddClick,
+  refreshKey,
+  presets,
+  onSavePreset,
+  onDeletePreset,
+  onDeleteTag,
+}: Props) {
   const [filters, setFilters] = useState<EntryFilters>({ sortBy: 'title', sortDir: 'asc' });
   const { entries, loading, error, refetch } = useEntries(mediaType, filters);
   const [menu, setMenu] = useState<{ x: number; y: number; id: number } | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   useEffect(() => {
     if (refreshKey > 0) refetch();
@@ -43,6 +61,21 @@ export function LibraryView({ mediaType, allTags, onSelectEntry, onEditEntry, on
         availableGenres={availableGenres}
         availableTags={allTags}
         onAddClick={onAddClick}
+        presets={{
+          items: presets,
+          onLoad: (preset) => setFilters(preset.filters),
+          onSaveClick: () => setSaveDialogOpen(true),
+          onDelete: onDeletePreset,
+        }}
+        onDeleteTag={onDeleteTag}
+      />
+      <SavePresetDialog
+        open={saveDialogOpen}
+        onCancel={() => setSaveDialogOpen(false)}
+        onSave={(name) => {
+          onSavePreset({ name, filters });
+          setSaveDialogOpen(false);
+        }}
       />
       {loading && <div className="status-line">Loading…</div>}
       {error && <div className="error-banner">{error}</div>}

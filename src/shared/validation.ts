@@ -101,6 +101,12 @@ export const EntryFiltersSchema = z.object({
 
 export const TagNameSchema = z.string().trim().min(1).max(100);
 
+export const NewFilterPresetSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  filters: EntryFiltersSchema,
+  activeTypes: z.array(z.enum(MEDIA_TYPES)).nullish(),
+});
+
 export const ExternalSearchQuerySchema = z.object({
   mediaType: z.enum(MEDIA_TYPES),
   query: z.string().trim().min(1).max(300),
