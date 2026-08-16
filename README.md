@@ -10,7 +10,7 @@ A personal desktop app for tracking movies, TV shows, books, music, and games yo
 - 10-point rating scale (e.g. `8.2/10`)
 - Status tracking (Planned / In Progress, or left blank to mean finished)
 - Free-text notes per entry
-- Shared tags across all media types, plus per-type genre
+- Shared tags across all media types, plus per-type genre — right-click a tag chip to rename or delete it
 - Cover art, either picked from a local file or fetched from a URL
 - Autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys
 - Combined "All" view spanning every media type at once, alongside the five per-type views
@@ -19,6 +19,7 @@ A personal desktop app for tracking movies, TV shows, books, music, and games yo
 - Right-click an entry card for quick Edit/Delete without opening it first
 - Stats dashboard — entries by type/status, rating distribution, top genres, entries added per year, and per-type totals (hours played, pages read, etc.)
 - Export your whole library to a JSON file and import it back in (additive — never overwrites existing data)
+- Light/dark theme, or follow your system setting
 - Local-only storage — your data stays on your machine (SQLite)
 
 ## Tech stack
@@ -60,4 +61,4 @@ CI (GitHub Actions) runs both on every push/PR to `main`.
 
 ## Project status
 
-Actively developed. Core tracking, rating, notes, filtering, full-text search, the combined "All" view, cover art, external-database autofill (for two of five media types so far), right-click quick actions, backup/restore, saved filter presets, and a stats dashboard are all in place. Not yet built: TMDB/RAWG autofill (needs API keys) and cloud sync.
+Actively developed. Core tracking, rating, notes, filtering, full-text search, the combined "All" view, cover art, external-database autofill (for two of five media types so far), right-click quick actions on both entries and tags (edit/delete, rename), backup/restore, saved filter presets, a stats dashboard, and light/dark theming are all in place. Not yet built: TMDB/RAWG autofill (needs API keys) and cloud sync.
