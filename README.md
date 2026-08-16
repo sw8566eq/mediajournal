@@ -61,5 +61,3 @@ CI (GitHub Actions) runs both on every push/PR to `main`.
 ## Project status
 
 Actively developed. Core tracking, rating, notes, filtering, full-text search, the combined "All" view, cover art, external-database autofill (for two of five media types so far), right-click quick actions, backup/restore, saved filter presets, and a stats dashboard are all in place. Not yet built: TMDB/RAWG autofill (needs API keys) and cloud sync.
-
-See [CLAUDE.md](./CLAUDE.md) for architecture notes if you're contributing or exploring the code.
