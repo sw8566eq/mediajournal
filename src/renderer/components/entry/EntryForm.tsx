@@ -168,7 +168,15 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
             <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
           </label>
 
-          <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
+          <StatusSelect
+            value={values.status}
+            onChange={(v) => {
+              set('status', v);
+              // In-progress means not finished yet - drop any finish date rather than leaving a
+              // stale one hidden (and still saved) once the field below disappears.
+              if (v === 'in_progress' && values.finishDate) set('finishDate', null);
+            }}
+          />
 
           <label className="field">
             <span>Start Date</span>
@@ -178,14 +186,16 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
               onChange={(e) => set('startDate', e.target.value || null)}
             />
           </label>
-          <label className="field">
-            <span>Finish Date</span>
-            <input
-              type="date"
-              value={values.finishDate ?? ''}
-              onChange={(e) => set('finishDate', e.target.value || null)}
-            />
-          </label>
+          {values.status !== 'in_progress' && (
+            <label className="field">
+              <span>Finish Date</span>
+              <input
+                type="date"
+                value={values.finishDate ?? ''}
+                onChange={(e) => set('finishDate', e.target.value || null)}
+              />
+            </label>
+          )}
         </MoreFieldsSection>
 
         <div className="form-actions">
