@@ -61,7 +61,12 @@ export function CoverArtField({ value, onChange, onImported, onBusyChange }: Pro
 
       {value ? (
         <div className="cover-preview">
-          <img src={coverUrl(value)!} alt="Cover art preview" />
+          {/* Wrapper carves out "remaining space after the Remove button" as the image's own
+              clean containing block, so its max-width/max-height (below) resolve against that,
+              not the whole column (which also has to leave room for the button). */}
+          <div className="cover-preview-image">
+            <img src={coverUrl(value)!} alt="Cover art preview" />
+          </div>
           <button type="button" onClick={() => onChange(null)} disabled={busy}>
             Remove
           </button>

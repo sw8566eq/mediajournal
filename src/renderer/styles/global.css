@@ -391,15 +391,23 @@ button.danger {
 
 /* Forms */
 .entry-form {
-  max-width: 860px;
+  /* No max-width: fills .app-content's full available width (a block element's default) rather
+     than leaving a wide margin of unused space either side on a large/maximized window. min-height
+     fills its available *height* too - a single explicit 1fr row (rather than the default
+     content-sized auto row) plus align-items: stretch is what lets .entry-form-main/-side actually
+     grow to fill that height, rather than just sitting top-aligned with blank space below. The
+     sidebar column is now a range (not a fixed 220px) so the cover art below can grow wider too,
+     not just taller. */
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px 28px;
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  grid-template-rows: 1fr;
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 100%;
 }
 
 .entry-form-main {
@@ -409,10 +417,23 @@ button.danger {
   min-width: 0;
 }
 
+/* Anchors Save/Cancel to the bottom of the now-stretched column instead of leaving them
+   stranded partway down with blank space below, on a tall/maximized window. Scoped to this one
+   context - .form-actions is reused by dialogs and EntryDetail, which don't have (or need) this. */
+.entry-form-main .form-actions {
+  margin-top: auto;
+}
+
 .entry-form-side {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Grows to fill the now-stretched .entry-form-side's height, so the cover art below can too. */
+.entry-form-side .cover-art-field {
+  flex: 1;
+  min-height: 0;
 }
 
 .external-search {
@@ -512,7 +533,9 @@ button.danger {
 }
 
 .entry-detail {
-  max-width: 980px;
+  /* No max-width - see .entry-form's comment above. min-height fills its available *height* too;
+     .entry-detail-layout below is what actually grows to fill it (flex: 1), so the back-link/title
+     above and the Edit/Delete row below stay naturally sized rather than also stretching. */
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -520,6 +543,7 @@ button.danger {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 100%;
 }
 
 .field {
@@ -569,28 +593,61 @@ button.danger {
   cursor: pointer;
 }
 
-/* Sidebar column, so the preview and controls stack full-width rather than side-by-side. */
+/* Sidebar column, so the preview and controls stack full-width rather than side-by-side. Grows
+   (flex: 1) to fill the now-stretched .cover-art-field's height. */
 .cover-art-field .cover-preview {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
-.cover-art-field .cover-preview img {
+/* Plain flex-grow box (deliberately no aspect-ratio here) that carves out "remaining space after
+   the Remove button" as a clean containing block for the actual <img> below. container-type: size
+   turns it into a query container, giving the img's `cqw`/`cqh` units below a stable (width,
+   height) to size against - both axes, tracked independently, which is exactly what the fit
+   formula needs (this requires the container's own size to *not* depend on its content's size,
+   which holds here: it's fully determined externally by flex-grow, not by the img inside it). */
+.cover-art-field .cover-preview-image {
+  flex: 1;
+  min-height: 0;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
+.cover-art-field .cover-preview-image img {
+  /* The largest 2:3 box that fits within the container's available width AND height, actively
+     growing to reach it rather than just capping an otherwise-intrinsic size. Plain `auto` sizing
+     (even bounded by max-width/max-height) does NOT do this - `auto` on a replaced element like
+     <img> resolves to its own intrinsic pixel size and only ever shrinks to fit a max constraint,
+     never grows past it. `width: min(100cqw, 100cqh * 2/3)` computes both candidate widths - "the
+     full container width" and "the width that would exactly fill the full container height at a
+     2:3 ratio" - and takes whichever is smaller, which is precisely the standard fit-to-box
+     formula for a fixed-ratio box. (A *definite* dimension on one axis alone, e.g. width: 100% or
+     height: 100%, paired with only a max-* cap on the other, doesn't work either: aspect-ratio
+     only fills in a genuinely *auto* dimension, so the definite one just wins outright once the
+     cap binds on the other axis, breaking the ratio - that was the previous, more literal bug.) */
   aspect-ratio: 2 / 3;
+  width: min(100cqw, 100cqh * 2 / 3);
+  height: auto;
   object-fit: cover;
   border-radius: 8px;
   /* Heavier than the small corner/search-result thumbnails (1px) - a hairline reads as too thin
-     to register at this size (rendered ~220px wide, vs. ~32-58px for those). */
+     to register at this size (rendered ~220-320px wide, vs. ~32-58px for those). */
   border: 2px solid var(--border);
   background: var(--bg);
+  display: block;
 }
 
 .cover-art-field .cover-preview.empty {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  flex: 1;
+  min-height: 0;
   border: 2px dashed var(--border); /* matches the same tier's img border above */
   border-radius: 8px;
   display: flex;
@@ -652,12 +709,18 @@ button.danger {
   cursor: pointer;
 }
 
-/* 3-pane detail layout: metadata | notes | large cover art. Without a cover, it's just 2 panes. */
+/* 3-pane detail layout: metadata | notes | large cover art. Without a cover, it's just 2 panes.
+   flex: 1 grows this to fill .entry-detail's available height (see above); the explicit 1fr row
+   is what lets .entry-detail-cover-pane's own align-self: stretch below actually reach that full
+   height, rather than just the row's natural (shorter) content height. Meta/notes stay
+   align-items: start (top-aligned, natural height) - only the cover pane opts into stretch. */
 .entry-detail-layout {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
+  grid-template-rows: 1fr;
   gap: 32px;
   align-items: start;
+  flex: 1;
 }
 
 .entry-detail-layout.has-cover {
@@ -670,9 +733,23 @@ button.danger {
   gap: 16px;
 }
 
+.entry-detail-cover-pane {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size; /* gives the img's cqw/cqh units below a stable (width, height) to size against */
+}
+
 .entry-detail-cover-pane img {
-  width: 100%;
+  /* min(100cqw, 100cqh * 2/3) - see cover-preview-image img's comment for why this (not plain
+     auto+max-width/max-height, which only ever caps an intrinsic size and never actively grows to
+     fill available space) is what's needed. No sibling to share space with here, so the pane
+     itself (stretched by the grid row, and now a query container) can serve directly as the img's
+     containing block - no extra wrapper needed. */
   aspect-ratio: 2 / 3;
+  width: min(100cqw, 100cqh * 2 / 3);
+  height: auto;
   object-fit: cover;
   border-radius: 12px;
   border: 2px solid var(--border); /* heavier than small thumbnails - see cover-art-field's img rule */
