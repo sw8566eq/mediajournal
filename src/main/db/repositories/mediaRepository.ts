@@ -11,8 +11,6 @@ const BASE_COLUMNS: ColumnMap[] = [
   { dbCol: 'genre', tsKey: 'genre' },
   { dbCol: 'rating_tenths', tsKey: 'ratingTenths' },
   { dbCol: 'status', tsKey: 'status' },
-  { dbCol: 'start_date', tsKey: 'startDate' },
-  { dbCol: 'finish_date', tsKey: 'finishDate' },
   { dbCol: 'notes', tsKey: 'notes' },
   { dbCol: 'external_id', tsKey: 'externalId' },
   { dbCol: 'cover_path', tsKey: 'coverPath' },

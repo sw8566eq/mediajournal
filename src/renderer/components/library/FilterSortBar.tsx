@@ -215,29 +215,6 @@ export function FilterSortBar({
         />
       </div>
 
-      {/* Not a min/max pair on one field like rating/year above - dateFrom constrains startDate,
-          dateTo constrains finishDate (two independent columns, see queryBuilder.ts's buildWhere).
-          Presenting them as an unlabeled em-dash pair would wrongly imply one range on one field,
-          so these get their own visible labels instead. */}
-      <div className="filter-group date-range">
-        <label>
-          <span>Start Date</span>
-          <input
-            type="date"
-            value={filters.dateFrom ?? ''}
-            onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || undefined })}
-          />
-        </label>
-        <label>
-          <span>Finish Date</span>
-          <input
-            type="date"
-            value={filters.dateTo ?? ''}
-            onChange={(e) => onChange({ ...filters, dateTo: e.target.value || undefined })}
-          />
-        </label>
-      </div>
-
       <select
         value={filters.sortBy ?? 'title'}
         onChange={(e) => onChange({ ...filters, sortBy: e.target.value as EntryFilters['sortBy'] })}
@@ -246,8 +223,6 @@ export function FilterSortBar({
         <option value="year">Sort: Year</option>
         <option value="rating">Sort: Rating</option>
         <option value="status">Sort: Status</option>
-        <option value="startDate">Sort: Start Date</option>
-        <option value="finishDate">Sort: Finish Date</option>
         <option value="createdAt">Sort: Date Added</option>
       </select>
       <button

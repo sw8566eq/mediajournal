@@ -11,7 +11,8 @@ export type StatsEntry = Record<string, unknown> & {
   genre: string | null;
   ratingTenths: number | null;
   status: EntryStatus | null;
-  finishDate: string | null;
+  /** Always present (DB default, never null) - see entriesPerYear below. */
+  createdAt: string;
 };
 
 export interface CountByType {
@@ -118,8 +119,9 @@ function topGenres(entries: StatsEntry[], limit = 8): GenreCount[] {
 function entriesPerYear(entries: StatsEntry[]): YearCount[] {
   const counts = new Map<number, number>();
   for (const e of entries) {
-    if (!e.finishDate) continue;
-    const year = parseInt(e.finishDate.slice(0, 4), 10);
+    // createdAt is always present, unlike the old finishDate-based version of this function -
+    // still guarding the parse in case of unexpected data, just not the presence check.
+    const year = parseInt(e.createdAt.slice(0, 4), 10);
     if (Number.isNaN(year)) continue;
     counts.set(year, (counts.get(year) ?? 0) + 1);
   }

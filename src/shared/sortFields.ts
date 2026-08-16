@@ -13,7 +13,5 @@ export const SORT_FIELDS: { value: SortByValue; dbColumn: string; tsKey: string 
   { value: 'year', dbColumn: 'year', tsKey: 'year' },
   { value: 'rating', dbColumn: 'rating_tenths', tsKey: 'ratingTenths' },
   { value: 'status', dbColumn: 'status', tsKey: 'status' },
-  { value: 'startDate', dbColumn: 'start_date', tsKey: 'startDate' },
-  { value: 'finishDate', dbColumn: 'finish_date', tsKey: 'finishDate' },
   { value: 'createdAt', dbColumn: 'created_at', tsKey: 'createdAt' },
 ];

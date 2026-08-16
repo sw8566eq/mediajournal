@@ -8,16 +8,16 @@ A personal desktop app for tracking movies, TV shows, books, music, and games yo
 
 - Separate library views for Movies, TV, Books, Music, and Games
 - 10-point rating scale (e.g. `8.2/10`)
-- Status tracking (Planned / In Progress, or left blank to mean finished) with start/finish dates
+- Status tracking (Planned / In Progress, or left blank to mean finished)
 - Free-text notes per entry
 - Shared tags across all media types, plus per-type genre
 - Cover art, either picked from a local file or fetched from a URL
 - Autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys
 - Combined "All" view spanning every media type at once, alongside the five per-type views
-- Filter by status, rating range, genre, tags, year, and date range; full-text search by title/notes; sort by multiple fields
+- Filter by status, rating range, genre, tags, and year; full-text search by title/notes; sort by multiple fields
 - Save a filter combination as a named preset and reload it later, from any library view
 - Right-click an entry card for quick Edit/Delete without opening it first
-- Stats dashboard — entries by type/status, rating distribution, top genres, entries finished per year, and per-type totals (hours played, pages read, etc.)
+- Stats dashboard — entries by type/status, rating distribution, top genres, entries added per year, and per-type totals (hours played, pages read, etc.)
 - Export your whole library to a JSON file and import it back in (additive — never overwrites existing data)
 - Local-only storage — your data stays on your machine (SQLite)
 

@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { computeStats, type StatsEntry } from './computeStats';
 
-function entry(overrides: Partial<StatsEntry> & { mediaType: StatsEntry['mediaType']; id: number }): StatsEntry {
+function entry(
+  overrides: Partial<StatsEntry> & { mediaType: StatsEntry['mediaType']; id: number },
+): StatsEntry {
   return {
     genre: null,
     ratingTenths: null,
     status: null,
-    finishDate: null,
+    createdAt: '2020-01-01 00:00:00',
     ...overrides,
   };
 }
@@ -89,17 +91,21 @@ describe('computeStats', () => {
     expect(computeStats(entries).topGenres).toHaveLength(8);
   });
 
-  it('groups entries per year by finishDate, ignoring unfinished entries, sorted ascending', () => {
+  it('groups entries per year by createdAt, sorted ascending', () => {
     const stats = computeStats([
-      entry({ id: 1, mediaType: 'book', finishDate: '2020-05-01' }),
-      entry({ id: 2, mediaType: 'book', finishDate: '2020-11-01' }),
-      entry({ id: 3, mediaType: 'book', finishDate: '2018-01-01' }),
-      entry({ id: 4, mediaType: 'book', finishDate: null }),
+      entry({ id: 1, mediaType: 'book', createdAt: '2020-05-01 12:00:00' }),
+      entry({ id: 2, mediaType: 'book', createdAt: '2020-11-01 12:00:00' }),
+      entry({ id: 3, mediaType: 'book', createdAt: '2018-01-01 12:00:00' }),
     ]);
     expect(stats.entriesPerYear).toEqual([
       { year: 2018, count: 1 },
       { year: 2020, count: 2 },
     ]);
+  });
+
+  it('ignores an entry with an unparsable createdAt rather than throwing', () => {
+    const stats = computeStats([entry({ id: 1, mediaType: 'book', createdAt: 'not-a-date' })]);
+    expect(stats.entriesPerYear).toEqual([]);
   });
 
   it('sums type-specific numeric fields per type, excluding year, omitting zero totals', () => {

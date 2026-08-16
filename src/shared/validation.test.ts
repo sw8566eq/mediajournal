@@ -15,8 +15,6 @@ describe('MovieCreateSchema', () => {
     genre: 'Sci-Fi',
     ratingTenths: 92,
     status: null,
-    startDate: null,
-    finishDate: '1999-03-31',
     notes: null,
     externalId: null,
     coverPath: null,
@@ -66,18 +64,6 @@ describe('MovieCreateSchema', () => {
     expect(MovieCreateSchema.safeParse({ ...valid, ratingTenths: null }).success).toBe(true);
   });
 
-  it('rejects a malformed date', () => {
-    expect(MovieCreateSchema.safeParse({ ...valid, finishDate: '03/31/1999' }).success).toBe(false);
-  });
-
-  it('accepts a well-formed ISO date', () => {
-    expect(MovieCreateSchema.safeParse({ ...valid, finishDate: '1999-03-31' }).success).toBe(true);
-  });
-
-  it('accepts a null date (date left unset)', () => {
-    expect(MovieCreateSchema.safeParse({ ...valid, finishDate: null }).success).toBe(true);
-  });
-
   it('rejects an invalid status value', () => {
     expect(MovieCreateSchema.safeParse({ ...valid, status: 'watching' }).success).toBe(false);
   });
@@ -116,8 +102,6 @@ describe('EntryFiltersSchema', () => {
       tagIds: [1, 2, 3],
       yearMin: 1990,
       yearMax: 2020,
-      dateFrom: '2020-01-01',
-      dateTo: '2020-12-31',
       search: 'matrix',
       sortBy: 'rating',
       sortDir: 'desc',

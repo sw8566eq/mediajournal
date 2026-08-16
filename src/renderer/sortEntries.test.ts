@@ -59,11 +59,9 @@ describe('compareEntries', () => {
       year: 2000,
       ratingTenths: 80,
       status: 'planned',
-      startDate: '2020-01-01',
-      finishDate: '2020-02-01',
       createdAt: '2020-01-01T00:00:00.000Z',
     };
-    const sortByValues = ['title', 'year', 'rating', 'status', 'startDate', 'finishDate', 'createdAt'] as const;
+    const sortByValues = ['title', 'year', 'rating', 'status', 'createdAt'] as const;
     for (const sortBy of sortByValues) {
       expect(() => compareEntries(sortBy, 'asc')(entry, entry)).not.toThrow();
     }

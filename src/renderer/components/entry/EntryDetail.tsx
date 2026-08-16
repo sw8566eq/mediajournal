@@ -44,10 +44,8 @@ export function EntryDetail({ mediaType, entry, onEdit, onDelete, onBack }: Prop
               </div>
             )}
             <div>
-              <strong>Start:</strong> {(entry.startDate as string) || '—'}
-            </div>
-            <div>
-              <strong>Finish:</strong> {(entry.finishDate as string) || '—'}
+              {/* createdAt is always present (DB default, never null) - no || '—' fallback needed. */}
+              <strong>Added:</strong> {entry.createdAt as string}
             </div>
           </div>
 

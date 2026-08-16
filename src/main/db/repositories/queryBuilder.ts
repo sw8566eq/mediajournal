@@ -68,14 +68,6 @@ export function buildWhere(filters: EntryFilters, config: WhereConfig): { clause
     clauses.push('year <= ?');
     params.push(filters.yearMax);
   }
-  if (filters.dateFrom) {
-    clauses.push('start_date >= ?');
-    params.push(filters.dateFrom);
-  }
-  if (filters.dateTo) {
-    clauses.push('finish_date <= ?');
-    params.push(filters.dateTo);
-  }
   if (filters.search) {
     const ftsQuery = toFtsQuery(filters.search);
     if (ftsQuery) {

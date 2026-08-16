@@ -4,11 +4,6 @@ import { ENTRY_STATUSES, MEDIA_TYPES, type MediaType } from './types';
 // `.nullish()` (not `.nullable()`) everywhere except `title`: these fields are optional, so the
 // key may be `null` OR simply absent from the payload (e.g. an untouched type-specific field on
 // create). `.nullable()` alone would still reject a missing key, which was the bug here.
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
-  .nullish();
-
 const title = z.string().trim().min(1, 'Title is required').max(500);
 const genre = z.string().trim().max(200).nullish();
 const ratingTenths = z.number().int().min(0).max(100).nullish();
@@ -25,8 +20,6 @@ const baseFields = {
   genre,
   ratingTenths,
   status,
-  startDate: isoDate,
-  finishDate: isoDate,
   notes,
   externalId,
   coverPath,
@@ -92,10 +85,8 @@ export const EntryFiltersSchema = z.object({
   tagIds: z.array(z.number().int().positive()).optional(),
   yearMin: z.number().int().optional(),
   yearMax: z.number().int().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
   search: z.string().optional(),
-  sortBy: z.enum(['title', 'year', 'rating', 'status', 'startDate', 'finishDate', 'createdAt']).optional(),
+  sortBy: z.enum(['title', 'year', 'rating', 'status', 'createdAt']).optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
 });
 

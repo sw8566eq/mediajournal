@@ -63,12 +63,6 @@ describe('buildWhere', () => {
     expect(result.params).toEqual([]);
   });
 
-  it('maps dateFrom to start_date and dateTo to finish_date', () => {
-    const result = buildWhere({ dateFrom: '2020-01-01', dateTo: '2020-12-31' }, movieConfig);
-    expect(result.clause).toBe('WHERE start_date >= ? AND finish_date <= ?');
-    expect(result.params).toEqual(['2020-01-01', '2020-12-31']);
-  });
-
   it('builds an FTS MATCH clause scoped to the table-specific FTS virtual table', () => {
     const result = buildWhere({ search: 'matrix' }, movieConfig);
     expect(result.clause).toBe('WHERE movies.id IN (SELECT rowid FROM movies_fts WHERE movies_fts MATCH ?)');

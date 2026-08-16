@@ -24,9 +24,6 @@ export interface BaseEntryFields {
   ratingTenths: number | null;
   /** null = blank/no active status, which implicitly means finished. */
   status: EntryStatus | null;
-  /** ISO 8601 date string YYYY-MM-DD, or null */
-  startDate: string | null;
-  finishDate: string | null;
   notes: string | null;
   /** Reserved for future external API autofill (e.g. TMDB/OpenLibrary id). Unused in v1. */
   externalId: string | null;
@@ -107,13 +104,9 @@ export interface EntryFilters {
   tagIds?: number[];
   yearMin?: number;
   yearMax?: number;
-  /** filters on startDate >= dateFrom */
-  dateFrom?: string;
-  /** filters on finishDate <= dateTo */
-  dateTo?: string;
   /** matched against title and notes (LIKE, case-insensitive) */
   search?: string;
-  sortBy?: 'title' | 'year' | 'rating' | 'status' | 'startDate' | 'finishDate' | 'createdAt';
+  sortBy?: 'title' | 'year' | 'rating' | 'status' | 'createdAt';
   sortDir?: 'asc' | 'desc';
 }
 

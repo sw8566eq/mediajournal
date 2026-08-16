@@ -15,8 +15,6 @@ export interface EntryFormValues {
   genre: string | null;
   ratingTenths: number | null;
   status: EntryStatus | null;
-  startDate: string | null;
-  finishDate: string | null;
   notes: string | null;
   externalId: string | null;
   coverPath: string | null;
@@ -38,8 +36,6 @@ const DEFAULTS: EntryFormValues = {
   genre: null,
   ratingTenths: null,
   status: null,
-  startDate: null,
-  finishDate: null,
   notes: null,
   externalId: null,
   coverPath: null,
@@ -168,43 +164,7 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
             <input type="text" value={values.genre ?? ''} onChange={(e) => set('genre', e.target.value || null)} />
           </label>
 
-          <StatusSelect
-            value={values.status}
-            onChange={(v) => {
-              set('status', v);
-              // Neither date makes sense for something merely planned (not started yet), and
-              // in-progress means not finished yet - drop whichever date(s) no longer apply
-              // rather than leaving a stale one hidden (and still saved) once the field(s) below
-              // disappear.
-              if (v === 'planned') {
-                if (values.startDate) set('startDate', null);
-                if (values.finishDate) set('finishDate', null);
-              } else if (v === 'in_progress' && values.finishDate) {
-                set('finishDate', null);
-              }
-            }}
-          />
-
-          {values.status !== 'planned' && (
-            <label className="field">
-              <span>Start Date</span>
-              <input
-                type="date"
-                value={values.startDate ?? ''}
-                onChange={(e) => set('startDate', e.target.value || null)}
-              />
-            </label>
-          )}
-          {values.status !== 'in_progress' && values.status !== 'planned' && (
-            <label className="field">
-              <span>Finish Date</span>
-              <input
-                type="date"
-                value={values.finishDate ?? ''}
-                onChange={(e) => set('finishDate', e.target.value || null)}
-              />
-            </label>
-          )}
+          <StatusSelect value={values.status} onChange={(v) => set('status', v)} />
         </MoreFieldsSection>
 
         <div className="form-actions">

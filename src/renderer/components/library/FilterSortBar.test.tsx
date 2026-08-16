@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { useState } from 'react';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { EntryFilters, Tag } from '@shared/types';
 import { FilterSortBar } from './FilterSortBar';
@@ -81,39 +81,14 @@ describe('FilterSortBar - year range', () => {
   });
 });
 
-describe('FilterSortBar - date range', () => {
-  it('sets dateFrom/dateTo when picked, labeled Start Date / Finish Date (not a generic range)', () => {
-    const onChange = vi.fn();
-    renderBar({ onChange });
-
-    // fireEvent.change, not userEvent.type: native date inputs don't support character-by-character
-    // typing, and a plain manual `.value =` + dispatchEvent bypasses the native setter React
-    // patches to detect controlled-input changes, so it wouldn't reliably reach onChange either.
-    const startInput = screen.getByLabelText('Start Date');
-    const finishInput = screen.getByLabelText('Finish Date');
-
-    fireEvent.change(startInput, { target: { value: '2020-01-01' } });
-    expect(onChange).toHaveBeenLastCalledWith({ dateFrom: '2020-01-01' });
-
-    fireEvent.change(finishInput, { target: { value: '2020-12-31' } });
-    expect(onChange).toHaveBeenLastCalledWith({ dateTo: '2020-12-31' });
-  });
-
-  it('reflects existing dateFrom/dateTo in the inputs', () => {
-    renderBar({ filters: { dateFrom: '2020-01-01', dateTo: '2020-12-31' } });
-    expect(screen.getByLabelText('Start Date')).toHaveValue('2020-01-01');
-    expect(screen.getByLabelText('Finish Date')).toHaveValue('2020-12-31');
-  });
-});
-
 describe('FilterSortBar - tag rename', () => {
   it('right-click a tag -> Rename Tag -> submit calls onRenameTag with the new name', async () => {
     const user = userEvent.setup();
     const { onRenameTag } = renderBar();
 
     const chip = screen.getByRole('button', { name: 'Sci-Fi' });
-    // ContextMenu listens on the native 'contextmenu' event - fireEvent maps directly to it,
-    // whereas userEvent has no dedicated "right click" helper in this version.
+    // ContextMenu listens on the native 'contextmenu' event, and userEvent has no dedicated
+    // "right click" helper in this version, so dispatch it directly.
     chip.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
 
     await user.click(await screen.findByText('Rename Tag'));

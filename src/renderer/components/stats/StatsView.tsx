@@ -114,7 +114,7 @@ export function StatsView() {
             <BarChartCard title="Status" data={statusData} />
             <BarChartCard title="Rating Distribution" data={ratingData} />
             <BarChartCard title="Top Genres" data={genreData} horizontal emptyMessage="No genres logged yet." />
-            <BarChartCard title="Finished per Year" data={yearData} emptyMessage="No finish dates logged yet." />
+            <BarChartCard title="Added per Year" data={yearData} emptyMessage="No entries logged yet." />
           </div>
         </>
       )}
