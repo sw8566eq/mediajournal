@@ -10,7 +10,9 @@ import { SettingsView } from './components/settings/SettingsView';
 import { StatsView } from './components/stats/StatsView';
 import { useTags } from './hooks/useTags';
 import { useFilterPresets } from './hooks/useFilterPresets';
+import { useSearchShortcut } from './hooks/useSearchShortcut';
 import { api } from './api/client';
+import { addTagToEntry, deleteEntryWithCover, type BulkResult, type EntryRef } from './entryActions';
 
 type View =
   | { name: 'library' }
@@ -32,6 +34,7 @@ export default function App() {
   const [pendingDelete, setPendingDelete] = useState<{ mediaType: MediaType; id: number } | null>(null);
   const { tags, createTag, deleteTag, renameTag, refetch: refetchTags } = useTags();
   const { presets, createPreset, deletePreset } = useFilterPresets();
+  useSearchShortcut();
 
   function selectMediaType(type: MediaType | 'all') {
     setActiveMediaType(type);
@@ -81,13 +84,32 @@ export default function App() {
     // a grid card's right-click menu, with no detail view ever opened (detailEntry null or, worse,
     // still holding a *different* previously-viewed entry's data, which would delete the wrong
     // entry's cover file).
-    const entry = await api[pendingDelete.mediaType].get(pendingDelete.id);
-    const coverPath = (entry as { coverPath?: string | null } | null)?.coverPath;
-    await api[pendingDelete.mediaType].delete(pendingDelete.id);
-    if (coverPath) await api.covers.remove(coverPath);
+    await deleteEntryWithCover(pendingDelete.mediaType, pendingDelete.id);
     setPendingDelete(null);
     setRefreshKey((k) => k + 1);
     setView({ name: 'library' });
+  }
+
+  // Both bulk functions take the uniform EntryRef[] shape rather than a single mediaType + id[] -
+  // LibraryView's selection is single-type, AllLibraryView's mixes types, and this keeps App.tsx
+  // agnostic to which one called it (each view converts its own locally-shaped selection before
+  // calling up). Promise.allSettled rather than Promise.all: the main process serializes DB calls
+  // regardless, so allSettled costs no transactional safety and gives an honest partial-success
+  // count instead of hiding which entries actually succeeded when one fails.
+  async function bulkDelete(items: EntryRef[]): Promise<BulkResult> {
+    const results = await Promise.allSettled(items.map((it) => deleteEntryWithCover(it.mediaType, it.id)));
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setRefreshKey((k) => k + 1);
+    return { succeeded: items.length - failed, failed };
+  }
+
+  async function bulkAddTag(items: EntryRef[], tagIds: number[]): Promise<BulkResult> {
+    const results = await Promise.allSettled(
+      items.flatMap((it) => tagIds.map((tagId) => addTagToEntry(it.mediaType, it.id, tagId))),
+    );
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setRefreshKey((k) => k + 1);
+    return { succeeded: items.length - failed, failed };
   }
 
   return (
@@ -113,6 +135,9 @@ export default function App() {
             onDeletePreset={deletePreset}
             onDeleteTag={deleteTag}
             onRenameTag={renameTag}
+            onCreateTag={createTag}
+            onBulkDelete={bulkDelete}
+            onBulkAddTag={bulkAddTag}
           />
         )}
         {view.name === 'library' && activeMediaType !== 'all' && (
@@ -129,6 +154,9 @@ export default function App() {
             onDeletePreset={deletePreset}
             onDeleteTag={deleteTag}
             onRenameTag={renameTag}
+            onCreateTag={createTag}
+            onBulkDelete={bulkDelete}
+            onBulkAddTag={bulkAddTag}
           />
         )}
         {view.name === 'form' && (

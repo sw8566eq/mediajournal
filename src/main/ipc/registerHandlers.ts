@@ -17,6 +17,8 @@ import { registerCoverHandlers } from './coverHandlers';
 import { registerExternalSearchHandlers } from './externalSearchHandlers';
 import { registerBackupHandlers } from './backupHandlers';
 import { registerFilterPresetHandlers } from './filterPresetHandlers';
+import { registerGenreHandlers } from './genreHandlers';
+import { registerImportHandlers } from './importHandlers';
 
 /** Registers every IPC handler the renderer relies on. Call once during app startup, before the window loads. */
 export function registerHandlers(): void {
@@ -56,4 +58,6 @@ export function registerHandlers(): void {
   registerExternalSearchHandlers();
   registerBackupHandlers();
   registerFilterPresetHandlers();
+  registerGenreHandlers();
+  registerImportHandlers();
 }

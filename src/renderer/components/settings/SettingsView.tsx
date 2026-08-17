@@ -3,6 +3,8 @@ import { api } from '../../api/client';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../theme';
+import { GenreManager } from './GenreManager';
+import { formatSourceImportSummary } from '../../importSummary';
 
 interface Props {
   /** Called after a successful import so the caller can refresh anything cached from before (e.g. the shared tag list). */
@@ -20,11 +22,13 @@ export function SettingsView({ onImported }: Props) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   async function handleExport() {
     setBusy(true);
     setError(null);
     setMessage(null);
+    setWarnings([]);
     try {
       const filePath = await api.backup.exportLibrary();
       if (filePath) setMessage(`Exported to ${filePath}`);
@@ -39,6 +43,7 @@ export function SettingsView({ onImported }: Props) {
     setBusy(true);
     setError(null);
     setMessage(null);
+    setWarnings([]);
     try {
       const summary = await api.backup.importLibrary();
       if (summary) {
@@ -48,6 +53,44 @@ export function SettingsView({ onImported }: Props) {
         const tagsPart = summary.tags > 0 ? `${summary.tags} tag${summary.tags === 1 ? '' : 's'}` : null;
         const allParts = [...parts, tagsPart].filter(Boolean);
         setMessage(allParts.length ? `Imported ${allParts.join(', ')}.` : 'Nothing to import - the file was empty.');
+        onImported();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleImportGoodreads() {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    setWarnings([]);
+    try {
+      const summary = await api.import.importGoodreads();
+      if (summary) {
+        setMessage(formatSourceImportSummary(summary, 'book'));
+        setWarnings(summary.warnings);
+        onImported();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleImportLetterboxd() {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    setWarnings([]);
+    try {
+      const summary = await api.import.importLetterboxd();
+      if (summary) {
+        setMessage(formatSourceImportSummary(summary, 'movie'));
+        setWarnings(summary.warnings);
         onImported();
       }
     } catch (err) {
@@ -88,6 +131,18 @@ export function SettingsView({ onImported }: Props) {
 
         {message && <div className="success-banner">{message}</div>}
         {error && <div className="error-banner">{error}</div>}
+        {warnings.length > 0 && (
+          <details className="import-warnings">
+            <summary>
+              {warnings.length} warning{warnings.length === 1 ? '' : 's'}
+            </summary>
+            <ul>
+              {warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </details>
+        )}
 
         <div className="settings-actions">
           <button type="button" onClick={handleExport} disabled={busy}>
@@ -97,7 +152,25 @@ export function SettingsView({ onImported }: Props) {
             Import Library
           </button>
         </div>
+
+        <h4>Import from other trackers</h4>
+        <p className="hint">
+          Bring in your existing history from Goodreads or Letterboxd. Each row becomes a new entry - items
+          already in your library (matched by title and year) are skipped automatically, and any read/watched
+          date from the source file is kept as a note. Letterboxd: export your data, unzip it, and pick
+          ratings.csv or diary.csv - watchlist.csv and watched.csv aren&apos;t supported.
+        </p>
+        <div className="settings-actions">
+          <button type="button" onClick={handleImportGoodreads} disabled={busy}>
+            Import from Goodreads
+          </button>
+          <button type="button" onClick={handleImportLetterboxd} disabled={busy}>
+            Import from Letterboxd
+          </button>
+        </div>
       </section>
+
+      <GenreManager />
     </div>
   );
 }

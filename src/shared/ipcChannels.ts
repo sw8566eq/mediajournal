@@ -40,6 +40,14 @@ export const IPC = {
     create: 'filterPresets:create',
     delete: 'filterPresets:delete',
   },
+  genres: {
+    list: 'genres:list',
+    rename: 'genres:rename',
+  },
+  import: {
+    goodreads: 'import:goodreads',
+    letterboxd: 'import:letterboxd',
+  },
 } as const;
 
 /** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */

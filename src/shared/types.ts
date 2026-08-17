@@ -186,6 +186,43 @@ export interface BackupAPI {
   importLibrary: () => Promise<ImportSummary | null>;
 }
 
+export interface GenreCount {
+  name: string;
+  count: number;
+}
+
+export interface GenreAPI {
+  /** Library-wide distinct genres with a count each, not just whatever's in the currently-loaded/filtered results. */
+  list: () => Promise<GenreCount[]>;
+  /** Bulk-renames a genre across every media type at once (case-insensitive match, so this also merges casing variants). Returns the number of entries updated. */
+  rename: (oldName: string, newName: string) => Promise<{ updated: number }>;
+}
+
+/** Richer summary for importing from an external tracker's CSV export (Goodreads/Letterboxd),
+ *  layered on the same per-media-type counts ImportSummary already reports for JSON backup
+ *  import - importLibraryData() is reused unmodified, so its return value is spread in as-is,
+ *  meaning only one of `book`/`movie` is ever non-zero per call. */
+export interface SourceImportSummary extends ImportSummary {
+  /** Parsed rows skipped because they matched an existing library entry by title (+ year). */
+  skippedDuplicate: number;
+  /** Parsed rows skipped because they failed validation after CSV coercion (e.g. missing a
+   *  required title) - distinct from Letterboxd diary.csv rows merged together as the same
+   *  rewatched film, which aren't skips. */
+  skippedInvalid: number;
+  /** Human-readable per-row warnings, capped for IPC transport (see capWarnings in
+   *  src/main/importers/shared.ts). */
+  warnings: string[];
+}
+
+export interface ImportAPI {
+  /** Opens a CSV file dialog scoped to a Goodreads library export, parses and dedupes it against
+   *  the existing library, and merges surviving rows into the book library. Returns null if the
+   *  dialog was canceled. */
+  importGoodreads: () => Promise<SourceImportSummary | null>;
+  /** Same shape, for a Letterboxd ratings.csv/diary.csv export merged into the movie library. */
+  importLetterboxd: () => Promise<SourceImportSummary | null>;
+}
+
 export interface MediaJournalAPI {
   movie: MediaTypeAPI<'movie'>;
   tv: MediaTypeAPI<'tv'>;
@@ -197,4 +234,6 @@ export interface MediaJournalAPI {
   externalSearch: ExternalSearchAPI;
   backup: BackupAPI;
   filterPresets: FilterPresetAPI;
+  genres: GenreAPI;
+  import: ImportAPI;
 }

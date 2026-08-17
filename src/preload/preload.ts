@@ -51,6 +51,14 @@ const api: MediaJournalAPI = {
     create: (data: NewFilterPreset) => ipcRenderer.invoke(IPC.filterPresets.create, data),
     delete: (id: number) => ipcRenderer.invoke(IPC.filterPresets.delete, id),
   },
+  genres: {
+    list: () => ipcRenderer.invoke(IPC.genres.list),
+    rename: (oldName: string, newName: string) => ipcRenderer.invoke(IPC.genres.rename, { oldName, newName }),
+  },
+  import: {
+    importGoodreads: () => ipcRenderer.invoke(IPC.import.goodreads),
+    importLetterboxd: () => ipcRenderer.invoke(IPC.import.letterboxd),
+  },
 };
 
 contextBridge.exposeInMainWorld('mediaJournalAPI', api);

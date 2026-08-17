@@ -98,6 +98,12 @@ export const NewFilterPresetSchema = z.object({
   activeTypes: z.array(z.enum(MEDIA_TYPES)).nullish(),
 });
 
+// max(200) matches the `genre` field's own limit in baseFields above.
+export const GenreRenameSchema = z.object({
+  oldName: z.string().trim().min(1).max(200),
+  newName: z.string().trim().min(1).max(200),
+});
+
 export const ExternalSearchQuerySchema = z.object({
   mediaType: z.enum(MEDIA_TYPES),
   query: z.string().trim().min(1).max(300),
@@ -116,6 +122,12 @@ export const ExportedEntrySchemaByType = {
   album: AlbumCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
   game: GameCreateSchema.omit({ tagIds: true, coverPath: true }).extend(exportTags),
 } satisfies Record<MediaType, z.ZodTypeAny>;
+
+// Row shape a validated CSV import (Goodreads/Letterboxd - see src/main/importers/) produces,
+// same as one entry of ExportFileSchema['entries'][type]. Named aliases so the importer modules
+// and their tests don't each repeat the z.infer<...> inline.
+export type ExportedBookEntry = z.infer<typeof ExportedEntrySchemaByType.book>;
+export type ExportedMovieEntry = z.infer<typeof ExportedEntrySchemaByType.movie>;
 
 export const ExportFileSchema = z.object({
   exportedAt: z.string(),

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 interface Props {
   open: boolean;
   message: string;
@@ -12,6 +14,19 @@ interface Props {
  * until the window is refocused some other way. A plain DOM modal has no such quirk.
  */
 export function ConfirmDialog({ open, message, onConfirm, onCancel }: Props) {
+  // Above the early `if (!open) return null` below, per React's hook-ordering rule - gated
+  // internally instead, so the listener is only actually attached while open. Matches
+  // ContextMenu.tsx's same document-level Escape pattern; there's no input here to attach a local
+  // onKeyDown to the way TextPromptDialog does.
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onCancel();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
