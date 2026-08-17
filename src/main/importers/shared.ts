@@ -105,6 +105,40 @@ export function rowLineNumbers(csvText: string): number[] {
   return numbers;
 }
 
+/**
+ * Converts a star rating to this app's 0-100 ratingTenths - Goodreads' 0-5 integer scale and
+ * Letterboxd's 0.5-5 half-star scale both convert the same way (multiply by 20), so one function
+ * covers both importers. 0, blank, and unparseable all mean "unrated" (null), not a real zero.
+ */
+export function starRatingToTenths(raw: string | undefined): number | null {
+  const trimmed = raw?.trim();
+  const num = trimmed ? Number(trimmed) : NaN;
+  return Number.isFinite(num) && num > 0 ? Math.round(num * 20) : null;
+}
+
+/**
+ * Splits a comma-separated tag list into trimmed, deduped, non-empty tags. `exclude`, when given,
+ * drops any tag matching it case-insensitively - Goodreads' Bookshelves column includes the
+ * exclusive-shelf name itself, which would otherwise be double-represented as both a status and a
+ * tag; Letterboxd's Tags column has no such overlap, so its call site omits `exclude`.
+ */
+export function parseTagList(raw: string | undefined, exclude?: string): string[] {
+  return [
+    ...new Set(
+      (raw ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s.toLowerCase() !== exclude),
+    ),
+  ];
+}
+
+/** Converts Papa.parse's own structural-error list (rows Papa itself couldn't tokenize) into the
+ *  same "Row N: message." warning shape both importers otherwise produce for validation failures. */
+export function papaErrorsToWarnings(errors: Papa.ParseError[]): string[] {
+  return errors.map((err) => `Row ${err.row != null ? err.row + 2 : '?'}: ${err.message}.`);
+}
+
 const DEFAULT_WARNING_CAP = 20;
 
 /** Bounds a warnings list for safe IPC transport, appending a summary line for anything past the

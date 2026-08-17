@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import type { ExternalSearchResult, MediaType } from '@shared/types';
 import { EXTERNAL_PROVIDER_LABELS } from '../../mediaTypeConfig';
 import { api } from '../../api/client';
+import { toErrorMessage } from '../../errorMessage';
 
 interface Props {
   mediaType: MediaType;
@@ -41,7 +42,7 @@ export function ExternalSearchPanel({ mediaType, initialQuery, onApplyResult }: 
         setResults([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setLoading(false);
     }

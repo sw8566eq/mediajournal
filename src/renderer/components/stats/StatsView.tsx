@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { MediaType } from '@shared/types';
+import { useMemo } from 'react';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
-import { api } from '../../api/client';
+import { useActiveMediaTypes } from '../../hooks/useActiveMediaTypes';
+import { useMultiTypeEntries } from '../../hooks/useMultiTypeEntries';
 import { computeStats, type StatsEntry } from '../../stats/computeStats';
 import { StatCard } from './StatCard';
 import { BarChartCard, type BarDatum } from './BarChartCard';
@@ -16,52 +16,13 @@ function formatRating(tenths: number): string {
  * Combined stats dashboard spanning every media type at once (mirrors the "All" library view's
  * philosophy), with a type-toggle chip row rather than five separate per-type stats pages.
  * Unfiltered by the main filter bar for v1 - wiring the full filter bar in is a natural v2.
- * Fetches via the same Promise.all-over-active-types pattern AllLibraryView already uses, reused
- * verbatim rather than adding a server-side aggregate query - appropriate at the scale a personal
- * local library actually reaches (see mediaRepository.ts: no GROUP BY/aggregate SQL exists
- * anywhere in this app).
+ * Fetches via useMultiTypeEntries, the same shared hook AllLibraryView uses, rather than adding a
+ * server-side aggregate query - appropriate at the scale a personal local library actually reaches
+ * (see mediaRepository.ts: no GROUP BY/aggregate SQL exists anywhere in this app).
  */
 export function StatsView() {
-  const [activeTypes, setActiveTypes] = useState<MediaType[]>(MEDIA_TYPE_ORDER);
-  const [entries, setEntries] = useState<StatsEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const activeTypesKey = activeTypes.slice().sort().join(',');
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      setLoading(true);
-      setError(null);
-      try {
-        const perType = await Promise.all(
-          activeTypes.map((type) =>
-            api[type]
-              .list({})
-              .then((rows) => (rows as unknown as Record<string, unknown>[]).map((row) => ({ ...row, mediaType: type }))),
-          ),
-        );
-        if (cancelled) return;
-        setEntries(perType.flat() as StatsEntry[]);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTypesKey]);
-
-  function toggleType(type: MediaType) {
-    setActiveTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
-  }
+  const { activeTypes, toggleType } = useActiveMediaTypes();
+  const { entries, loading, error } = useMultiTypeEntries<StatsEntry>(activeTypes, {});
 
   const stats = useMemo(() => computeStats(entries), [entries]);
 

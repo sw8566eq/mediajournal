@@ -1,36 +1,33 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import fs from 'node:fs/promises';
 import { IPC } from '@shared/ipcChannels';
 import { ExportFileSchema } from '@shared/validation';
 import { buildExportData, importLibraryData } from '../backup';
+import { pickOpenFile, pickSaveFile } from './dialogUtil';
 
 export function registerBackupHandlers(): void {
   ipcMain.handle(IPC.backup.export, async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const options: Electron.SaveDialogOptions = {
+    const filePath = await pickSaveFile(event, {
       title: 'Export Library',
       defaultPath: `mediajournal-export-${new Date().toISOString().slice(0, 10)}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
-    };
-    const result = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
-    if (result.canceled || !result.filePath) return null;
+    });
+    if (!filePath) return null;
 
     const data = buildExportData();
-    await fs.writeFile(result.filePath, JSON.stringify(data, null, 2), 'utf-8');
-    return result.filePath;
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return filePath;
   });
 
   ipcMain.handle(IPC.backup.import, async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const options: Electron.OpenDialogOptions = {
+    const filePath = await pickOpenFile(event, {
       title: 'Import Library',
       properties: ['openFile'],
       filters: [{ name: 'JSON', extensions: ['json'] }],
-    };
-    const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
-    if (result.canceled || result.filePaths.length === 0) return null;
+    });
+    if (!filePath) return null;
 
-    const raw = await fs.readFile(result.filePaths[0], 'utf-8');
+    const raw = await fs.readFile(filePath, 'utf-8');
     const parsed = ExportFileSchema.parse(JSON.parse(raw));
     return importLibraryData(parsed);
   });

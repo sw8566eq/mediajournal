@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import type { MediaType, SourceImportSummary } from '@shared/types';
 import { api } from '../../api/client';
+import { toErrorMessage } from '../../errorMessage';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../theme';
@@ -24,27 +26,32 @@ export function SettingsView({ onImported }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  async function handleExport() {
+  // Every action below (export, import, and the two CSV imports) shares this exact reset/
+  // try/catch/finally shell - factored once so each handler only states what's actually distinct
+  // about it, rather than repeating the busy/error/message/warnings bookkeeping four times.
+  async function runAction(action: () => Promise<void>): Promise<void> {
     setBusy(true);
     setError(null);
     setMessage(null);
     setWarnings([]);
     try {
-      const filePath = await api.backup.exportLibrary();
-      if (filePath) setMessage(`Exported to ${filePath}`);
+      await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleImport() {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    setWarnings([]);
-    try {
+  function handleExport() {
+    return runAction(async () => {
+      const filePath = await api.backup.exportLibrary();
+      if (filePath) setMessage(`Exported to ${filePath}`);
+    });
+  }
+
+  function handleImport() {
+    return runAction(async () => {
       const summary = await api.backup.importLibrary();
       if (summary) {
         const parts = MEDIA_TYPE_ORDER.filter((type) => summary[type] > 0).map(
@@ -55,50 +62,26 @@ export function SettingsView({ onImported }: Props) {
         setMessage(allParts.length ? `Imported ${allParts.join(', ')}.` : 'Nothing to import - the file was empty.');
         onImported();
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
-  async function handleImportGoodreads() {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    setWarnings([]);
-    try {
-      const summary = await api.import.importGoodreads();
+  // The Goodreads/Letterboxd handlers are additionally identical to *each other* beyond runAction's
+  // shell - both just call one api.import.* method and, on a non-null summary, format+show it the
+  // same way - so this factors that shared body too, leaving each handler a one-line caller naming
+  // only what's actually different: which import to run and which media type it produced.
+  function handleSourceImport(run: () => Promise<SourceImportSummary | null>, mediaType: MediaType) {
+    return runAction(async () => {
+      const summary = await run();
       if (summary) {
-        setMessage(formatSourceImportSummary(summary, 'book'));
+        setMessage(formatSourceImportSummary(summary, mediaType));
         setWarnings(summary.warnings);
         onImported();
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
-  async function handleImportLetterboxd() {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    setWarnings([]);
-    try {
-      const summary = await api.import.importLetterboxd();
-      if (summary) {
-        setMessage(formatSourceImportSummary(summary, 'movie'));
-        setWarnings(summary.warnings);
-        onImported();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const handleImportGoodreads = () => handleSourceImport(api.import.importGoodreads, 'book');
+  const handleImportLetterboxd = () => handleSourceImport(api.import.importLetterboxd, 'movie');
 
   return (
     <div className="settings-view">

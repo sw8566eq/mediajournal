@@ -1,20 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import type { Tag } from '@shared/types';
 import { api } from '../api/client';
+import { useListResource } from './useListResource';
 
 export function useTags() {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refetch = useCallback(async () => {
-    setLoading(true);
-    setTags(await api.tags.list());
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  const { items: tags, loading, refetch } = useListResource<Tag>(api.tags.list);
 
   const createTag = useCallback(
     async (name: string) => {

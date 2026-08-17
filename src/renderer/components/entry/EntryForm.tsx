@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { EntryStatus, ExternalSearchResult, MediaType, Tag } from '@shared/types';
 import { api } from '../../api/client';
+import { toErrorMessage } from '../../errorMessage';
 import { PRIMARY_FIELD } from '../../mediaTypeConfig';
 import { RatingInput } from './RatingInput';
 import { StatusSelect } from './StatusSelect';
@@ -83,7 +84,7 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
       if (originalCoverPath && originalCoverPath !== finalCoverPath) stale.push(originalCoverPath);
       await Promise.all(stale.map((f) => api.covers.remove(f)));
     } catch (err) {
-      if (isMountedRef.current) setError(err instanceof Error ? err.message : String(err));
+      if (isMountedRef.current) setError(toErrorMessage(err));
     } finally {
       if (isMountedRef.current) setSaving(false);
     }

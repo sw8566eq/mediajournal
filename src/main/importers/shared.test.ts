@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import Papa from 'papaparse';
-import { isSameItem, prependDateNote, capWarnings, dedupeAgainstExisting, rowLineNumbers } from './shared';
+import {
+  isSameItem,
+  prependDateNote,
+  capWarnings,
+  dedupeAgainstExisting,
+  rowLineNumbers,
+  starRatingToTenths,
+  parseTagList,
+  papaErrorsToWarnings,
+} from './shared';
 
 describe('isSameItem', () => {
   it('matches identical title and year', () => {
@@ -131,5 +140,59 @@ describe('dedupeAgainstExisting', () => {
     const result = dedupeAgainstExisting(candidates, existing);
     expect(result.surviving).toEqual([{ title: 'B', year: 2 }]);
     expect(result.skippedDuplicate).toBe(2);
+  });
+});
+
+describe('starRatingToTenths', () => {
+  it('converts a whole-number star rating (Goodreads scale)', () => {
+    expect(starRatingToTenths('5')).toBe(100);
+    expect(starRatingToTenths('3')).toBe(60);
+  });
+
+  it('converts a half-star rating (Letterboxd scale)', () => {
+    expect(starRatingToTenths('4.5')).toBe(90);
+  });
+
+  it('treats 0, blank, and unparseable values as unrated (null), not a real zero', () => {
+    expect(starRatingToTenths('0')).toBeNull();
+    expect(starRatingToTenths('')).toBeNull();
+    expect(starRatingToTenths(undefined)).toBeNull();
+    expect(starRatingToTenths('not a number')).toBeNull();
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(starRatingToTenths('  4  ')).toBe(80);
+  });
+});
+
+describe('parseTagList', () => {
+  it('splits, trims, and dedupes a comma-separated list', () => {
+    expect(parseTagList('sci-fi, favorites, sci-fi ')).toEqual(['sci-fi', 'favorites']);
+  });
+
+  it('returns an empty array for blank/undefined input', () => {
+    expect(parseTagList('')).toEqual([]);
+    expect(parseTagList(undefined)).toEqual([]);
+  });
+
+  it('excludes a value case-insensitively when exclude is given', () => {
+    expect(parseTagList('sci-fi, favorites, read', 'read')).toEqual(['sci-fi', 'favorites']);
+  });
+
+  it('does not exclude anything when exclude is omitted', () => {
+    expect(parseTagList('comfort, rewatch')).toEqual(['comfort', 'rewatch']);
+  });
+});
+
+describe('papaErrorsToWarnings', () => {
+  it('formats a Papa.parse error into a "Row N: message." warning', () => {
+    const errors = Papa.parse('a,b\n"unterminated', { header: false }).errors;
+    const warnings = papaErrorsToWarnings(errors);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings[0]).toMatch(/^Row \d+: .+\.$/);
+  });
+
+  it('returns an empty array when there are no errors', () => {
+    expect(papaErrorsToWarnings([])).toEqual([]);
   });
 });

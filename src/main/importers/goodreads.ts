@@ -4,7 +4,14 @@
 import Papa from 'papaparse';
 import { ExportedEntrySchemaByType, type ExportedBookEntry } from '@shared/validation';
 import type { EntryStatus } from '@shared/types';
-import { prependDateNote, rowLineNumbers, type ParsedImport } from './shared';
+import {
+  papaErrorsToWarnings,
+  parseTagList,
+  prependDateNote,
+  rowLineNumbers,
+  starRatingToTenths,
+  type ParsedImport,
+} from './shared';
 
 // Goodreads' three built-in shelf values map onto this app's status convention (null = finished,
 // never a literal 'none' string - see CLAUDE.md's Database section). A custom/renamed shelf falls
@@ -22,9 +29,7 @@ const SHELF_STATUS: Record<string, EntryStatus | null> = {
 export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEntry> {
   const parsed = Papa.parse<Record<string, string>>(csvText, { header: true, skipEmptyLines: true });
 
-  const warnings: string[] = parsed.errors.map(
-    (err) => `Row ${err.row != null ? err.row + 2 : '?'}: ${err.message}.`,
-  );
+  const warnings: string[] = papaErrorsToWarnings(parsed.errors);
   const entries: ExportedBookEntry[] = [];
   let skippedInvalid = 0;
 
@@ -48,8 +53,7 @@ export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEnt
       }
     }
 
-    const ratingRaw = Number(row['My Rating']);
-    const ratingTenths = Number.isFinite(ratingRaw) && ratingRaw > 0 ? Math.round(ratingRaw * 20) : null;
+    const ratingTenths = starRatingToTenths(row['My Rating']);
 
     const yearText = row['Year Published']?.trim() || row['Original Publication Year']?.trim();
     const yearNum = yearText ? Number(yearText) : NaN;
@@ -70,16 +74,7 @@ export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEnt
       }
     }
 
-    // Bookshelves includes the exclusive shelf itself - drop it so it isn't double-represented
-    // as both a status and a tag.
-    const tags = [
-      ...new Set(
-        (row['Bookshelves'] ?? '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && s.toLowerCase() !== rawShelf),
-      ),
-    ];
+    const tags = parseTagList(row['Bookshelves'], rawShelf);
 
     const reviewText = [row['My Review'], row['Private Notes']]
       .map((s) => s?.trim())

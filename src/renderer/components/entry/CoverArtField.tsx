@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../api/client';
 import { coverUrl } from '../../coverUrl';
+import { toErrorMessage } from '../../errorMessage';
 
 interface Props {
   value: string | null;
@@ -32,7 +33,7 @@ export function CoverArtField({ value, onChange, onImported, onBusyChange }: Pro
         onChange(filename);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setBusyState(false);
     }
@@ -49,7 +50,7 @@ export function CoverArtField({ value, onChange, onImported, onBusyChange }: Pro
       onChange(filename);
       setUrlInput('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       setBusyState(false);
     }

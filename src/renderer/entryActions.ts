@@ -22,8 +22,8 @@ export interface BulkResult {
 
 /**
  * Deletes an entry and cleans up its cover file, if any. Fetches the entry fresh rather than
- * trusting a caller-supplied coverPath - callers (App.tsx's confirmDelete, and Feature C's bulk
- * delete) may only have an id in hand, not the full entry, and a stale/wrong cover path here would
+ * trusting a caller-supplied coverPath - callers (App.tsx's confirmDelete, and the bulk delete
+ * below) may only have an id in hand, not the full entry, and a stale/wrong cover path here would
  * either leak an orphaned file or delete the wrong one.
  */
 export async function deleteEntryWithCover(mediaType: MediaType, id: number): Promise<void> {

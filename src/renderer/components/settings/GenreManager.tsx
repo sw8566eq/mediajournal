@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { GenreCount } from '@shared/types';
 import { api } from '../../api/client';
+import { toErrorMessage } from '../../errorMessage';
+import { useListResource } from '../../hooks/useListResource';
 import { TextPromptDialog } from '../common/TextPromptDialog';
 
 /** Single consumer of the genre list (unlike tags, which many components share via an App-level
@@ -9,21 +11,10 @@ import { TextPromptDialog } from '../common/TextPromptDialog';
  *  filter-dropdown genre options from currently-loaded entries, unchanged - this is a separate,
  *  library-wide view for the housekeeping action (rename/merge) those views have no room for. */
 export function GenreManager() {
-  const [genres, setGenres] = useState<GenreCount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: genres, loading, refetch } = useListResource<GenreCount>(api.genres.list);
   const [pendingRename, setPendingRename] = useState<{ name: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  async function refetch() {
-    setLoading(true);
-    setGenres(await api.genres.list());
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    refetch();
-  }, []);
 
   async function submitRename(newName: string) {
     if (!pendingRename) return;
@@ -34,7 +25,7 @@ export function GenreManager() {
       setPendingRename(null);
       await refetch();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     }
   }
 

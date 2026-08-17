@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import { ENTRY_STATUSES, MEDIA_TYPES, type MediaType } from './types';
+import { SORT_FIELDS, type SortByValue } from './sortFields';
+
+// Derived from SORT_FIELDS rather than hand-copied, so this can't silently drift from the actual
+// sortable-fields list the way mediaRepository.ts's SORT_COLUMN and sortEntries.ts's SORT_KEY
+// used to before SORT_FIELDS became their single source of truth (see sortFields.ts) - this schema
+// was the one hardcoded holdout.
+const sortByValues = SORT_FIELDS.map((f) => f.value) as [SortByValue, ...SortByValue[]];
 
 // `.nullish()` (not `.nullable()`) everywhere except `title`: these fields are optional, so the
 // key may be `null` OR simply absent from the payload (e.g. an untouched type-specific field on
@@ -61,14 +68,6 @@ export const GameCreateSchema = z.object({
   hoursPlayed: z.number().min(0).max(100000).nullish(),
 });
 
-export const CreateSchemaByType = {
-  movie: MovieCreateSchema,
-  tv: TvShowCreateSchema,
-  book: BookCreateSchema,
-  album: AlbumCreateSchema,
-  game: GameCreateSchema,
-} satisfies Record<MediaType, z.ZodTypeAny>;
-
 export const UpdateSchemaByType = {
   movie: MovieCreateSchema.partial(),
   tv: TvShowCreateSchema.partial(),
@@ -86,7 +85,7 @@ export const EntryFiltersSchema = z.object({
   yearMin: z.number().int().optional(),
   yearMax: z.number().int().optional(),
   search: z.string().optional(),
-  sortBy: z.enum(['title', 'year', 'rating', 'status', 'createdAt']).optional(),
+  sortBy: z.enum(sortByValues).optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
 });
 

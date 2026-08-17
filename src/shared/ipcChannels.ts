@@ -1,4 +1,4 @@
-import { MEDIA_TYPES, type MediaType } from './types';
+import type { MediaType } from './types';
 
 /** Single source of truth for IPC channel names, shared by preload (sender) and main (handler). */
 function mediaChannels(type: MediaType) {
@@ -52,5 +52,3 @@ export const IPC = {
 
 /** Custom protocol scheme cover images are served from in the renderer, e.g. `media-cover://<filename>`. */
 export const COVER_PROTOCOL = 'media-cover';
-
-export const MEDIA_TYPES_LIST = MEDIA_TYPES;

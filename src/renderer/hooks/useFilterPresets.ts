@@ -1,20 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import type { FilterPreset, NewFilterPreset } from '@shared/types';
 import { api } from '../api/client';
+import { useListResource } from './useListResource';
 
 export function useFilterPresets() {
-  const [presets, setPresets] = useState<FilterPreset[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refetch = useCallback(async () => {
-    setLoading(true);
-    setPresets(await api.filterPresets.list());
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  const { items: presets, loading, refetch } = useListResource<FilterPreset>(api.filterPresets.list);
 
   const createPreset = useCallback(
     async (data: NewFilterPreset) => {

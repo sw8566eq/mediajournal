@@ -25,9 +25,11 @@ export interface BaseEntryFields {
   /** null = blank/no active status, which implicitly means finished. */
   status: EntryStatus | null;
   notes: string | null;
-  /** Reserved for future external API autofill (e.g. TMDB/OpenLibrary id). Unused in v1. */
+  /** The external database id an entry was autofilled from (e.g. an Open Library work key or
+   *  MusicBrainz MBID), if any - see src/main/externalApis/. */
   externalId: string | null;
-  /** Reserved for future cover art caching. Unused in v1. */
+  /** Locally-cached cover art filename, served via the media-cover:// protocol - see
+   *  src/main/covers.ts. */
   coverPath: string | null;
   createdAt: string;
   updatedAt: string;

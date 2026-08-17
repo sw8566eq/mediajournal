@@ -3,7 +3,15 @@
 // ../ipc/importHandlers.ts.
 import Papa from 'papaparse';
 import { ExportedEntrySchemaByType, type ExportedMovieEntry } from '@shared/validation';
-import { isSameItem, prependDateNote, rowLineNumbers, type ParsedImport } from './shared';
+import {
+  isSameItem,
+  papaErrorsToWarnings,
+  parseTagList,
+  prependDateNote,
+  rowLineNumbers,
+  starRatingToTenths,
+  type ParsedImport,
+} from './shared';
 
 interface LetterboxdRow {
   Date?: string;
@@ -42,9 +50,7 @@ export function parseLetterboxdCsv(csvText: string): ParsedImport<ExportedMovieE
     );
   }
 
-  const warnings: string[] = parsed.errors.map(
-    (err) => `Row ${err.row != null ? err.row + 2 : '?'}: ${err.message}.`,
-  );
+  const warnings: string[] = papaErrorsToWarnings(parsed.errors);
 
   // Collapse repeat rows for the same film (rewatches) down to the latest-dated one before
   // validating.
@@ -78,17 +84,8 @@ export function parseLetterboxdCsv(csvText: string): ParsedImport<ExportedMovieE
     const title = row.Name?.trim() ?? '';
     const year = parseYear(row.Year);
 
-    const ratingRaw = row.Rating?.trim() ? Number(row.Rating.trim()) : NaN;
-    const ratingTenths = Number.isFinite(ratingRaw) && ratingRaw > 0 ? Math.round(ratingRaw * 20) : null;
-
-    const tags = [
-      ...new Set(
-        (row.Tags ?? '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0),
-      ),
-    ];
+    const ratingTenths = starRatingToTenths(row.Rating);
+    const tags = parseTagList(row.Tags);
 
     const candidate = {
       title,

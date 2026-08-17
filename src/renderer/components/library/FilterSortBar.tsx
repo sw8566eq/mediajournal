@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { EntryFilters, EntryStatus, FilterPreset, MediaType, Tag } from '@shared/types';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER, STATUS_LABELS } from '../../mediaTypeConfig';
+import { toErrorMessage } from '../../errorMessage';
 import { ContextMenu } from '../common/ContextMenu';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { TextPromptDialog } from '../common/TextPromptDialog';
@@ -35,6 +36,63 @@ interface Props {
 }
 
 const STATUS_VALUES = Object.keys(STATUS_LABELS) as EntryStatus[];
+
+interface RangeFilterInputsProps {
+  wrapperClassName: string;
+  minPlaceholder: string;
+  maxPlaceholder: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  minValue: number | undefined;
+  maxValue: number | undefined;
+  onMinChange: (value: number | undefined) => void;
+  onMaxChange: (value: number | undefined) => void;
+}
+
+/** A min/max pair of number inputs, e.g. rating range or year range below - both call sites were
+ *  otherwise identical apart from placeholders/bounds/which filter fields they read and write, and
+ *  (for rating specifically) the tenths<->displayed-X.X scaling, which stays at each call site
+ *  rather than in here since it's domain knowledge this generic input pair has no reason to know
+ *  about. */
+function RangeFilterInputs({
+  wrapperClassName,
+  minPlaceholder,
+  maxPlaceholder,
+  min,
+  max,
+  step,
+  minValue,
+  maxValue,
+  onMinChange,
+  onMaxChange,
+}: RangeFilterInputsProps) {
+  return (
+    <div className={`filter-group ${wrapperClassName}`}>
+      <input
+        type="number"
+        className="rating-bound"
+        placeholder={minPlaceholder}
+        min={min}
+        max={max}
+        step={step}
+        value={minValue ?? ''}
+        onChange={(e) => onMinChange(e.target.value ? Number(e.target.value) : undefined)}
+      />
+      <span>–</span>
+      <input
+        type="number"
+        className="rating-bound"
+        placeholder={maxPlaceholder}
+        min={min}
+        max={max}
+        step={step}
+        value={maxValue ?? ''}
+        onChange={(e) => onMaxChange(e.target.value ? Number(e.target.value) : undefined)}
+      />
+    </div>
+  );
+}
 
 export function FilterSortBar({
   filters,
@@ -79,7 +137,7 @@ export function FilterSortBar({
       // Most likely tags.name's UNIQUE COLLATE NOCASE constraint (renaming to a name that
       // collides, case-insensitively, with a different existing tag) - keep the dialog open with
       // the error shown rather than closing it as if the rename had actually happened.
-      setRenameError(err instanceof Error ? err.message : String(err));
+      setRenameError(toErrorMessage(err));
     }
   }
 
@@ -169,51 +227,28 @@ export function FilterSortBar({
         </div>
       )}
 
-      <div className="filter-group rating-range">
-        <input
-          type="number"
-          className="rating-bound"
-          placeholder="Min"
-          min={0}
-          max={10}
-          step={0.1}
-          value={filters.ratingMin !== undefined ? filters.ratingMin / 10 : ''}
-          onChange={(e) =>
-            onChange({ ...filters, ratingMin: e.target.value ? Math.round(Number(e.target.value) * 10) : undefined })
-          }
-        />
-        <span>–</span>
-        <input
-          type="number"
-          className="rating-bound"
-          placeholder="Max"
-          min={0}
-          max={10}
-          step={0.1}
-          value={filters.ratingMax !== undefined ? filters.ratingMax / 10 : ''}
-          onChange={(e) =>
-            onChange({ ...filters, ratingMax: e.target.value ? Math.round(Number(e.target.value) * 10) : undefined })
-          }
-        />
-      </div>
+      <RangeFilterInputs
+        wrapperClassName="rating-range"
+        minPlaceholder="Min"
+        maxPlaceholder="Max"
+        min={0}
+        max={10}
+        step={0.1}
+        minValue={filters.ratingMin !== undefined ? filters.ratingMin / 10 : undefined}
+        maxValue={filters.ratingMax !== undefined ? filters.ratingMax / 10 : undefined}
+        onMinChange={(v) => onChange({ ...filters, ratingMin: v !== undefined ? Math.round(v * 10) : undefined })}
+        onMaxChange={(v) => onChange({ ...filters, ratingMax: v !== undefined ? Math.round(v * 10) : undefined })}
+      />
 
-      <div className="filter-group year-range">
-        <input
-          type="number"
-          className="rating-bound"
-          placeholder="Year min"
-          value={filters.yearMin ?? ''}
-          onChange={(e) => onChange({ ...filters, yearMin: e.target.value ? Number(e.target.value) : undefined })}
-        />
-        <span>–</span>
-        <input
-          type="number"
-          className="rating-bound"
-          placeholder="Year max"
-          value={filters.yearMax ?? ''}
-          onChange={(e) => onChange({ ...filters, yearMax: e.target.value ? Number(e.target.value) : undefined })}
-        />
-      </div>
+      <RangeFilterInputs
+        wrapperClassName="year-range"
+        minPlaceholder="Year min"
+        maxPlaceholder="Year max"
+        minValue={filters.yearMin}
+        maxValue={filters.yearMax}
+        onMinChange={(v) => onChange({ ...filters, yearMin: v })}
+        onMaxChange={(v) => onChange({ ...filters, yearMax: v })}
+      />
 
       <select
         value={filters.sortBy ?? 'title'}

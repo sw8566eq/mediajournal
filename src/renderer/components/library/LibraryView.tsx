@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { EntryFilters, FilterPreset, MediaType, NewFilterPreset, Tag } from '@shared/types';
 import { useEntries } from '../../hooks/useEntries';
+import { useBulkSelection } from '../../hooks/useBulkSelection';
 import type { BulkResult, EntryRef } from '../../entryActions';
 import { ContextMenu } from '../common/ContextMenu';
 import { EntryCard } from './EntryCard';
@@ -51,47 +52,23 @@ export function LibraryView({
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   // A single-type view, so selection is just a plain id set - AllLibraryView needs a composite
   // key instead, since it mixes types.
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
-  const [bulkError, setBulkError] = useState<string | null>(null);
+  const bulk = useBulkSelection<number>([filters, refreshKey]);
 
   useEffect(() => {
     if (refreshKey > 0) refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
-  // A changed filter query, or a refetch (refreshKey - e.g. an entry deleted via its own
-  // right-click menu while still checked), can drop previously-selected entries out of the
-  // visible list entirely - clearing selection here rather than trying to reconcile it against
-  // the new results. Without refreshKey in the deps, a selected entry deleted out-of-band left a
-  // stale id behind: the bar kept showing it as selected, and a subsequent bulk action would issue
-  // a wasted no-op call for it.
-  useEffect(() => {
-    setSelected(new Set());
-  }, [filters, refreshKey]);
-
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function toEntryRefs(): EntryRef[] {
+    return Array.from(bulk.selected).map((id) => ({ mediaType, id }));
   }
 
-  async function handleBulkDelete() {
-    const items: EntryRef[] = Array.from(selected).map((id) => ({ mediaType, id }));
-    const result = await onBulkDelete(items);
-    setSelected(new Set());
-    setBulkError(result.failed > 0 ? `${result.failed} of ${items.length} deletions failed.` : null);
+  function handleBulkDelete() {
+    return bulk.runBulkDelete(toEntryRefs(), onBulkDelete);
   }
 
-  async function handleBulkAddTag(tagIds: number[]) {
-    const items: EntryRef[] = Array.from(selected).map((id) => ({ mediaType, id }));
-    const result = await onBulkAddTag(items, tagIds);
-    setBulkTagDialogOpen(false);
-    setSelected(new Set());
-    setBulkError(result.failed > 0 ? `${result.failed} of ${items.length} tag updates failed.` : null);
+  function handleBulkAddTag(tagIds: number[]) {
+    return bulk.runBulkAddTag(toEntryRefs(), tagIds, onBulkAddTag);
   }
 
   const availableGenres = useMemo(() => {
@@ -129,19 +106,19 @@ export function LibraryView({
         }}
       />
       <BulkActionBar
-        count={selected.size}
-        onClear={() => setSelected(new Set())}
+        count={bulk.selected.size}
+        onClear={bulk.clear}
         onDelete={handleBulkDelete}
-        onAddTagClick={() => setBulkTagDialogOpen(true)}
+        onAddTagClick={bulk.openBulkTagDialog}
       />
       <BulkTagDialog
-        open={bulkTagDialogOpen}
+        open={bulk.bulkTagDialogOpen}
         allTags={allTags}
         onCreateTag={onCreateTag}
         onApply={handleBulkAddTag}
-        onCancel={() => setBulkTagDialogOpen(false)}
+        onCancel={bulk.closeBulkTagDialog}
       />
-      {bulkError && <div className="error-banner">{bulkError}</div>}
+      {bulk.bulkError && <div className="error-banner">{bulk.bulkError}</div>}
       {loading && <div className="status-line">Loading…</div>}
       {error && <div className="error-banner">{error}</div>}
       {!loading && !error && entries.length === 0 && (
@@ -158,8 +135,8 @@ export function LibraryView({
               entry={e}
               onClick={() => onSelectEntry(mediaType, id)}
               onContextMenu={(evt) => setMenu({ x: evt.clientX, y: evt.clientY, id })}
-              selected={selected.has(id)}
-              onToggleSelect={() => toggleSelect(id)}
+              selected={bulk.selected.has(id)}
+              onToggleSelect={() => bulk.toggle(id)}
             />
           );
         })}

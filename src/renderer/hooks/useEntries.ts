@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EntryByType, EntryFilters, MediaType } from '@shared/types';
 import { api } from '../api/client';
+import { toErrorMessage } from '../errorMessage';
 
 /** Fetches (and refetches on filter/mediaType change) the entry list for one media type. */
 export function useEntries<T extends MediaType>(mediaType: T, filters: EntryFilters) {
@@ -26,7 +27,7 @@ export function useEntries<T extends MediaType>(mediaType: T, filters: EntryFilt
       setEntries(result);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
-      setError(err instanceof Error ? err.message : String(err));
+      setError(toErrorMessage(err));
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }

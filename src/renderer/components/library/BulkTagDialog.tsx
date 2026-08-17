@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Tag } from '@shared/types';
 import { TagPicker } from '../entry/TagPicker';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface Props {
   open: boolean;
@@ -26,14 +27,7 @@ export function BulkTagDialog({ open, allTags, onCreateTag, onApply, onCancel }:
     if (open) setQueuedIds([]);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel();
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onCancel]);
+  useEscapeKey(open, onCancel);
 
   if (!open) return null;
 

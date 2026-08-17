@@ -3,7 +3,7 @@
 // risky row-parsing/validation logic lives in the pure, unit-tested ../importers/* modules; this
 // file only does the file dialog, existing-library dedupe, and handing surviving rows to the
 // existing, unmodified importLibraryData().
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import fs from 'node:fs/promises';
 import { IPC } from '@shared/ipcChannels';
 import type { ExportedBookEntry, ExportedMovieEntry } from '@shared/validation';
@@ -15,20 +15,13 @@ import { importLibraryData } from '../backup';
 import { parseGoodreadsCsv } from '../importers/goodreads';
 import { parseLetterboxdCsv } from '../importers/letterboxd';
 import { dedupeAgainstExisting, capWarnings, type ParsedImport } from '../importers/shared';
+import { pickOpenFile } from './dialogUtil';
 
 type ImportPayload = Parameters<typeof importLibraryData>[0];
 type SourceEntry = ExportedBookEntry | ExportedMovieEntry;
 
-async function pickCsvFile(event: Electron.IpcMainInvokeEvent, title: string): Promise<string | null> {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  const options: Electron.OpenDialogOptions = {
-    title,
-    properties: ['openFile'],
-    filters: [{ name: 'CSV', extensions: ['csv'] }],
-  };
-  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
-  if (result.canceled || result.filePaths.length === 0) return null;
-  return result.filePaths[0];
+function pickCsvFile(event: Electron.IpcMainInvokeEvent, title: string): Promise<string | null> {
+  return pickOpenFile(event, { title, properties: ['openFile'], filters: [{ name: 'CSV', extensions: ['csv'] }] });
 }
 
 /** Dedupes parsed rows against the existing library (by title, case-insensitive, +year when both
