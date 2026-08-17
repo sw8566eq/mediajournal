@@ -60,11 +60,15 @@ export function LibraryView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
-  // A changed filter query can drop previously-selected entries out of the visible list entirely -
-  // clearing selection here rather than trying to reconcile it against the new results.
+  // A changed filter query, or a refetch (refreshKey - e.g. an entry deleted via its own
+  // right-click menu while still checked), can drop previously-selected entries out of the
+  // visible list entirely - clearing selection here rather than trying to reconcile it against
+  // the new results. Without refreshKey in the deps, a selected entry deleted out-of-band left a
+  // stale id behind: the bar kept showing it as selected, and a subsequent bulk action would issue
+  // a wasted no-op call for it.
   useEffect(() => {
     setSelected(new Set());
-  }, [filters]);
+  }, [filters, refreshKey]);
 
   function toggleSelect(id: number) {
     setSelected((prev) => {

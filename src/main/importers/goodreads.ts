@@ -4,7 +4,7 @@
 import Papa from 'papaparse';
 import { ExportedEntrySchemaByType, type ExportedBookEntry } from '@shared/validation';
 import type { EntryStatus } from '@shared/types';
-import { prependDateNote, type ParsedImport } from './shared';
+import { prependDateNote, rowLineNumbers, type ParsedImport } from './shared';
 
 // Goodreads' three built-in shelf values map onto this app's status convention (null = finished,
 // never a literal 'none' string - see CLAUDE.md's Database section). A custom/renamed shelf falls
@@ -28,8 +28,13 @@ export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEnt
   const entries: ExportedBookEntry[] = [];
   let skippedInvalid = 0;
 
+  // Not a plain `index + 2`: skipEmptyLines:true above already dropped any blank line from
+  // `parsed.data` before indexing, which would otherwise make every warning's reported row number
+  // drift below the true physical line as soon as the file has one. See rowLineNumbers' doc.
+  const lineNumbers = rowLineNumbers(csvText);
+
   parsed.data.forEach((row, index) => {
-    const rowNumber = index + 2; // +1 for 1-indexing, +1 for the header row
+    const rowNumber = lineNumbers[index] ?? index + 2; // fallback should be unreachable in practice
     const title = row['Title']?.trim() ?? '';
     const label = title || 'untitled';
 
@@ -51,8 +56,19 @@ export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEnt
     const year = Number.isFinite(yearNum) ? yearNum : null;
 
     const pagesText = row['Number of Pages']?.trim();
-    const pagesNum = pagesText ? Number(pagesText) : NaN;
-    const pages = Number.isFinite(pagesNum) ? pagesNum : null;
+    // Number('1,234') is NaN - strip thousands separators before parsing so a long book's page
+    // count doesn't silently vanish. Anything left that still isn't a plain number gets a warning
+    // rather than quietly becoming null, matching how an unrecognized shelf value warns instead of
+    // failing silently.
+    const pagesNum = pagesText ? Number(pagesText.replace(/,/g, '')) : NaN;
+    let pages: number | null = null;
+    if (pagesText) {
+      if (Number.isFinite(pagesNum)) {
+        pages = pagesNum;
+      } else {
+        warnings.push(`Row ${rowNumber} ("${label}"): could not parse "Number of Pages" value "${pagesText}", imported without a page count.`);
+      }
+    }
 
     // Bookshelves includes the exclusive shelf itself - drop it so it isn't double-represented
     // as both a status and a tag.
@@ -84,7 +100,22 @@ export function parseGoodreadsCsv(csvText: string): ParsedImport<ExportedBookEnt
       tags,
     };
 
-    const result = ExportedEntrySchemaByType.book.safeParse(candidate);
+    let result = ExportedEntrySchemaByType.book.safeParse(candidate);
+    if (!result.success && candidate.year !== null) {
+      // A bad `year` shouldn't sink an otherwise-valid row: Goodreads represents a work's
+      // original-publication-year as a negative number for anything published BCE (e.g. -380 for
+      // Plato's Republic), which fails the shared year schema's min(0) - and a hand-edited export
+      // could have any other out-of-range value. Retry once with year nulled out; if that's what
+      // made parsing fail, keep the rest of the row (rating/notes/tags included) rather than
+      // dropping it entirely, same as an unrecognized shelf degrades to "finished" instead of
+      // failing the row.
+      const retry = ExportedEntrySchemaByType.book.safeParse({ ...candidate, year: null });
+      if (retry.success) {
+        warnings.push(`Row ${rowNumber} ("${label}"): year ${candidate.year} is out of range, imported without a year.`);
+        result = retry;
+      }
+    }
+
     if (result.success) {
       entries.push(result.data);
     } else {

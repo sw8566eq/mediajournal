@@ -145,4 +145,63 @@ describe('parseGoodreadsCsv', () => {
     const result = parseGoodreadsCsv(csv);
     expect(result.entries[0].notes).toBe('Read: 2020/01/15\n\nPublic thoughts.\n\nPrivate thoughts.');
   });
+
+  it('imports a negative (BCE) Original Publication Year with a null year rather than dropping the whole row', () => {
+    const csv = [
+      HEADER,
+      row({
+        Title: 'Republic',
+        Author: 'Plato',
+        'My Rating': '4',
+        'Original Publication Year': '-380',
+        'Exclusive Shelf': 'read',
+      }),
+    ].join('\n');
+    const result = parseGoodreadsCsv(csv);
+
+    expect(result.skippedInvalid).toBe(0);
+    expect(result.entries).toHaveLength(1);
+    const entry = result.entries[0];
+    expect(entry.title).toBe('Republic');
+    expect(entry.year).toBeNull();
+    expect(entry.author).toBe('Plato');
+    expect(entry.ratingTenths).toBe(80);
+    expect(result.warnings.some((w) => w.includes('out of range'))).toBe(true);
+  });
+
+  it('still skips a row whose invalidity is unrelated to year', () => {
+    const csv = [HEADER, row({ Author: 'No Title Here', 'Original Publication Year': '-380', 'Exclusive Shelf': 'read' })].join(
+      '\n',
+    );
+    const result = parseGoodreadsCsv(csv);
+    expect(result.entries).toHaveLength(0);
+    expect(result.skippedInvalid).toBe(1);
+  });
+
+  it('strips thousands-separator commas from Number of Pages instead of dropping the count', () => {
+    const csv = [HEADER, row({ Title: 'Long Book', 'Number of Pages': '1,234', 'Exclusive Shelf': 'read' })].join('\n');
+    const result = parseGoodreadsCsv(csv);
+    expect(result.entries[0].pages).toBe(1234);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('warns rather than silently dropping an unparseable Number of Pages value', () => {
+    const csv = [HEADER, row({ Title: 'Odd Page Count', 'Number of Pages': 'N/A', 'Exclusive Shelf': 'read' })].join('\n');
+    const result = parseGoodreadsCsv(csv);
+    expect(result.entries[0].pages).toBeNull();
+    expect(result.warnings.some((w) => w.includes('Number of Pages'))).toBe(true);
+  });
+
+  it('reports the true physical row number for a warning after an earlier blank line', () => {
+    const csv = [
+      HEADER,
+      row({ Title: 'First Book', 'Exclusive Shelf': 'read' }),
+      '', // a blank line, as some real exports have between sections
+      row({ Author: 'No Title Here', 'Exclusive Shelf': 'read' }),
+    ].join('\n');
+    const result = parseGoodreadsCsv(csv);
+    // The row missing a title is truly on physical line 4 (header=1, First Book=2, blank=3), not
+    // line 3, which a naive index-based count over skipEmptyLines:true output would report.
+    expect(result.warnings.some((w) => w.startsWith('Row 4'))).toBe(true);
+  });
 });

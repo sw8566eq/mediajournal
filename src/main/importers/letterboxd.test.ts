@@ -82,4 +82,17 @@ describe('parseLetterboxdCsv', () => {
     const csv = ['Date,Name,Year,Letterboxd URI', '2020-01-01,Some Film,2019,https://boxd.it/abc'].join('\n');
     expect(() => parseLetterboxdCsv(csv)).toThrow(/Rating/);
   });
+
+  it('reports the true physical row number for a warning after an earlier blank line', () => {
+    const csv = [
+      'Date,Name,Year,Letterboxd URI,Rating',
+      '2020-01-01,First Film,2020,https://boxd.it/xyz,4',
+      '', // a blank line, as some real exports have between sections
+      ',,2019,https://boxd.it/xyz,3', // missing Name
+    ].join('\n');
+    const result = parseLetterboxdCsv(csv);
+    // The row missing a Name is truly on physical line 4 (header=1, First Film=2, blank=3), not
+    // line 3, which a naive index-based count over skipEmptyLines:true output would report.
+    expect(result.warnings.some((w) => w.startsWith('Row 4'))).toBe(true);
+  });
 });

@@ -1,6 +1,7 @@
 // Pure helpers shared by the Goodreads/Letterboxd CSV importers (goodreads.ts, letterboxd.ts)
 // and by the DB-touching dedupe step in ../ipc/importHandlers.ts. Zero Electron/DB imports -
 // mirrors db/repositories/queryBuilder.ts's reasoning for staying host-Node-testable.
+import Papa from 'papaparse';
 
 /** What a CSV parser returns: the rows that turned into valid entries, warnings for rows that
  *  didn't (never a throw - one bad row in a large export shouldn't abort the whole import,
@@ -66,6 +67,42 @@ export function dedupeAgainstExisting<T extends { title: string; year?: number |
     return !isDuplicate;
   });
   return { surviving, skippedDuplicate };
+}
+
+/**
+ * Both parsers run Papa.parse with `skipEmptyLines: true`, so a blank line earlier in the file
+ * shifts every subsequent row's array index below its true physical CSV line number - a naive
+ * `index + 2` (1-indexing + header row) reports the wrong line in any warning once that happens.
+ * This recovers the true line number of each real (non-blank) data row by re-parsing the same
+ * text with `header: false, skipEmptyLines: false`, so every physical line - including blank ones
+ * - gets a slot to index against. Reusing Papa.parse for this (rather than a naive
+ * `csvText.split('\n')`) matters: a quoted field containing an embedded newline (a multi-line
+ * Goodreads review, say) is one logical row spanning multiple physical text lines, and only
+ * Papa's own tokenizer - not a plain newline split - knows to treat it as such. A genuinely blank
+ * physical line tokenizes to exactly one empty-string field, which is Papa's own definition of
+ * "empty line" (skipEmptyLines: true's non-"greedy" mode only drops lines with literally nothing
+ * on them) - everything else counts as a real row.
+ *
+ * Returns the 1-indexed physical line number of each real row, in file order, excluding the
+ * header line - so `rowLineNumbers(csvText)[i]` is the true line number for `parsed.data[i]` when
+ * `parsed` came from the same text parsed with `skipEmptyLines: true`.
+ */
+export function rowLineNumbers(csvText: string): number[] {
+  const raw = Papa.parse<string[]>(csvText, { header: false, skipEmptyLines: false });
+  const numbers: number[] = [];
+  // Can't just use `i + 1` as the line number: when an earlier row's own field value contains an
+  // embedded newline, that one logical row spans multiple physical lines, pushing every row after
+  // it further down than its array index alone would suggest. Track physical line position with a
+  // running counter instead, advancing it by 1 (the row's own line break) plus however many
+  // newlines are embedded in that row's field values.
+  let line = 1; // the header line
+  raw.data.forEach((fields, i) => {
+    const isBlank = fields.length === 1 && fields[0].trim() === '';
+    if (i > 0 && !isBlank) numbers.push(line);
+    const newlinesInRow = fields.reduce((sum, f) => sum + (f.match(/\n/g)?.length ?? 0), 0);
+    line += 1 + newlinesInRow;
+  });
+  return numbers;
 }
 
 const DEFAULT_WARNING_CAP = 20;

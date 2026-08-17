@@ -12,7 +12,7 @@ import { useTags } from './hooks/useTags';
 import { useFilterPresets } from './hooks/useFilterPresets';
 import { useSearchShortcut } from './hooks/useSearchShortcut';
 import { api } from './api/client';
-import { addTagToEntry, deleteEntryWithCover, type BulkResult, type EntryRef } from './entryActions';
+import { addTagsToEntry, deleteEntryWithCover, type BulkResult, type EntryRef } from './entryActions';
 
 type View =
   | { name: 'library' }
@@ -104,9 +104,11 @@ export default function App() {
   }
 
   async function bulkAddTag(items: EntryRef[], tagIds: number[]): Promise<BulkResult> {
-    const results = await Promise.allSettled(
-      items.flatMap((it) => tagIds.map((tagId) => addTagToEntry(it.mediaType, it.id, tagId))),
-    );
+    // One addTagsToEntry call per entry (not per entry x tag) - batching every tag for a given
+    // entry into a single read-then-write is what makes this safe to run concurrently, and also
+    // keeps `results` at exactly one promise per item, so the succeeded/failed count below stays
+    // meaningful (it used to be counted per (entry, tag) pair while divided by entry count alone).
+    const results = await Promise.allSettled(items.map((it) => addTagsToEntry(it.mediaType, it.id, tagIds)));
     const failed = results.filter((r) => r.status === 'rejected').length;
     setRefreshKey((k) => k + 1);
     return { succeeded: items.length - failed, failed };

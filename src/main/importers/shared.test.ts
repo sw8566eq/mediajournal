@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isSameItem, prependDateNote, capWarnings, dedupeAgainstExisting } from './shared';
+import Papa from 'papaparse';
+import { isSameItem, prependDateNote, capWarnings, dedupeAgainstExisting, rowLineNumbers } from './shared';
 
 describe('isSameItem', () => {
   it('matches identical title and year', () => {
@@ -69,6 +70,34 @@ describe('capWarnings', () => {
     const warnings = ['a', 'b', 'c', 'd'];
     const result = capWarnings(warnings, 3);
     expect(result).toEqual(['a', 'b', 'c', '...and 1 more warning.']);
+  });
+});
+
+describe('rowLineNumbers', () => {
+  it('returns consecutive line numbers when there are no blank lines', () => {
+    const csv = 'Title,Author\nBook A,Author A\nBook B,Author B\nBook C,Author C';
+    expect(rowLineNumbers(csv)).toEqual([2, 3, 4]);
+  });
+
+  it('skips a blank line so later rows report their true physical line number', () => {
+    const csv = 'Title,Author\nBook A,Author A\n\nBook B,Author B';
+    // Book A is on line 2, the blank line is line 3, Book B is truly on line 4 - not line 3, which
+    // is what a naive `index + 2` over Papa.parse's skipEmptyLines:true output would report.
+    expect(rowLineNumbers(csv)).toEqual([2, 4]);
+  });
+
+  it('does not mistake a quoted field with an embedded newline for a blank line', () => {
+    const csv = 'Title,Review\nBook A,"Great,\nreally great."\nBook B,fine';
+    // The quoted review spans physical lines 2-3 as one logical row; Book B is truly on line 4.
+    expect(rowLineNumbers(csv)).toEqual([2, 4]);
+  });
+
+  it('lines up 1:1 with a skipEmptyLines:true parse of the same text', () => {
+    const csv = 'Title,Author\nBook A,Author A\n\n\nBook B,Author B\nBook C,Author C';
+    const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
+    const numbers = rowLineNumbers(csv);
+    expect(numbers).toHaveLength(parsed.data.length);
+    expect(parsed.data.map((_, i) => numbers[i])).toEqual([2, 5, 6]);
   });
 });
 

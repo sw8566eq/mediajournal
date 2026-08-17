@@ -3,7 +3,7 @@
 // ../ipc/importHandlers.ts.
 import Papa from 'papaparse';
 import { ExportedEntrySchemaByType, type ExportedMovieEntry } from '@shared/validation';
-import { isSameItem, prependDateNote, type ParsedImport } from './shared';
+import { isSameItem, prependDateNote, rowLineNumbers, type ParsedImport } from './shared';
 
 interface LetterboxdRow {
   Date?: string;
@@ -49,8 +49,12 @@ export function parseLetterboxdCsv(csvText: string): ParsedImport<ExportedMovieE
   // Collapse repeat rows for the same film (rewatches) down to the latest-dated one before
   // validating.
   const collapsed: { row: LetterboxdRow; rowNumber: number }[] = [];
+  // Not a plain `index + 2`: skipEmptyLines:true above already dropped any blank line from
+  // `parsed.data` before indexing, which would otherwise make every warning's reported row number
+  // drift below the true physical line as soon as the file has one. See rowLineNumbers' doc.
+  const lineNumbers = rowLineNumbers(csvText);
   parsed.data.forEach((row, index) => {
-    const rowNumber = index + 2; // +1 for 1-indexing, +1 for the header row
+    const rowNumber = lineNumbers[index] ?? index + 2; // fallback should be unreachable in practice
     const title = row.Name?.trim() ?? '';
     if (!title) {
       warnings.push(`Row ${rowNumber}: missing Name, skipped.`);

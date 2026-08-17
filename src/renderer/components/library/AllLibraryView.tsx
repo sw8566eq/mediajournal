@@ -101,11 +101,15 @@ export function AllLibraryView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTypesKey, filtersKey, refreshKey]);
 
-  // A changed filter/type-tab query can drop previously-selected entries out of the visible list
-  // entirely - clearing selection here rather than trying to reconcile it against new results.
+  // A changed filter/type-tab query, or a refetch (refreshKey - e.g. an entry deleted via its own
+  // right-click menu while still checked), can drop previously-selected entries out of the visible
+  // list entirely - clearing selection here rather than trying to reconcile it against new
+  // results. Without refreshKey in the deps, the selected-count badge went stale after an
+  // out-of-band delete (selectedRefs() already re-filters against fresh entries before any bulk
+  // action runs, so this was cosmetic here, unlike the equivalent LibraryView gap).
   useEffect(() => {
     setSelected(new Set());
-  }, [activeTypesKey, filtersKey]);
+  }, [activeTypesKey, filtersKey, refreshKey]);
 
   function toggleType(type: MediaType) {
     setActiveTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));

@@ -34,16 +34,25 @@ export async function deleteEntryWithCover(mediaType: MediaType, id: number): Pr
 }
 
 /**
- * Adds a tag to an entry without disturbing its existing tags. `mediaRepository.ts`'s setTags()
- * (invoked via update()'s tagIds field) is fully *replacing* - it deletes all junction rows for
- * the entry and re-inserts exactly the given ids - so a naive `update(id, { tagIds: [tagId] })`
- * would wipe every tag the entry already had. Fetch first, union (deduped) with the existing tag
- * ids, then update with the full resulting set.
+ * Adds one or more tags to an entry without disturbing its existing tags. `mediaRepository.ts`'s
+ * setTags() (invoked via update()'s tagIds field) is fully *replacing* - it deletes all junction
+ * rows for the entry and re-inserts exactly the given ids - so a naive
+ * `update(id, { tagIds: [tagId] })` would wipe every tag the entry already had. Fetch first,
+ * union (deduped) with the existing tag ids, then update once with the full resulting set.
+ *
+ * Deliberately takes *all* tag ids for one entry in a single call, rather than being called once
+ * per tag: this used to be `addTagToEntry(mediaType, id, tagId)`, and bulkAddTag (App.tsx) called
+ * it once per (entry, tag) pair via Promise.allSettled. When 2+ tags were applied to the same
+ * entry, those calls raced - each independently read the entry's *pre-existing* tags before any
+ * of the others' writes landed, so whichever write landed last won outright and silently undid
+ * the others. Batching every tag for an entry into one read-then-write removes the race by
+ * construction: there is exactly one write per entry, so nothing to race against.
  */
-export async function addTagToEntry(mediaType: MediaType, id: number, tagId: number): Promise<void> {
+export async function addTagsToEntry(mediaType: MediaType, id: number, tagIds: number[]): Promise<void> {
   const entry = await api[mediaType].get(id);
   if (!entry) return;
   const existingIds = entry.tags.map((t) => t.id);
-  if (existingIds.includes(tagId)) return; // already tagged - skip the redundant write
-  await api[mediaType].update(id, { tagIds: [...existingIds, tagId] });
+  const nextIds = [...new Set([...existingIds, ...tagIds])];
+  if (nextIds.length === existingIds.length) return; // entry already had every one of these tags
+  await api[mediaType].update(id, { tagIds: nextIds });
 }
