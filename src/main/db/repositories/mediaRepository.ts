@@ -3,6 +3,8 @@ import { getDb } from '../connection';
 import type { BaseEntryFields, EntryFilters, EntryInput, EntryUpdate, MediaType, Tag } from '@shared/types';
 import { SORT_FIELDS } from '@shared/sortFields';
 import { buildWhere, type ColumnMap } from './queryBuilder';
+import { groupTagsByEntry } from './tagGrouping';
+import { createKeyedSlot } from './statementCache';
 
 export { buildWhere } from './queryBuilder';
 
@@ -39,36 +41,97 @@ export interface MediaRepository<T extends MediaType> {
   delete(id: number): void;
 }
 
+// Explicit BindParameters=unknown[] rather than ReturnType<Database.Database['prepare']> - the
+// latter doesn't pick up prepare()'s own `BindParameters = unknown[]` default when extracted from
+// a bare (uncalled) reference to the generic method, and ends up inferring an empty tuple instead,
+// which then rejects the varied call shapes below (single id, id+tagId pair, spread arrays).
+type Stmt = Database.Statement<unknown[], unknown>;
+
 /** Builds a full CRUD repository for one media-type table, sharing all query logic. */
 export function createMediaRepository<T extends MediaType>(config: MediaRepositoryConfig<T>) {
   const { table, junctionTable, junctionColumn, typeColumns } = config;
   const allColumns = [...BASE_COLUMNS, ...typeColumns];
+  const dbCols = allColumns.map((c) => c.dbCol);
 
-  function tagsFor(db: Database.Database, id: number): Tag[] {
-    return db
-      .prepare(
-        `SELECT t.id, t.name FROM tags t
-         JOIN ${junctionTable} jt ON jt.tag_id = t.id
-         WHERE jt.${junctionColumn} = ?
-         ORDER BY t.name COLLATE NOCASE`,
-      )
-      .all(id) as Tag[];
+  // Cached prepared statements for this repo's genuinely static SQL - fixed table/column names
+  // that never change once this repo is built, so re-preparing the same text on every single call
+  // (as this code used to do) was wasted work. list()/update()/tagsForMany() aren't cached this way
+  // since their SQL text itself depends on which filters/fields/ids are present in a given call,
+  // not just this repo's fixed shape - only genuinely static statements are worth this.
+  //
+  // Statements are tied to the specific Database connection they were prepared against - keyed via
+  // createKeyedSlot() (statementCache.ts) by connection identity, so a stale statement from a
+  // closed-and-reopened connection (e.g. macOS: closing every window without quitting, then
+  // reactivating - see main.ts) can never be reused; see that module's own doc comment for the
+  // full reasoning, and its tests for the identity-swap behavior itself. The SQL/DB round-trip this
+  // wraps still can't be unit tested (this repo layer has no automated test coverage - see
+  // CLAUDE.md's Database section) and was verified ad hoc against a temp SQLite file instead.
+  const stmtSlot = createKeyedSlot<
+    Database.Database,
+    {
+      tagsFor: Stmt;
+      getById: Stmt;
+      insertRow: Stmt;
+      deleteById: Stmt;
+      deleteTags: Stmt;
+      insertTag: Stmt;
+    }
+  >();
+
+  function stmtsFor(db: Database.Database) {
+    return stmtSlot.forKey(db);
   }
 
-  function rowToEntry(db: Database.Database, row: Record<string, unknown>): BaseEntryFields & Record<string, unknown> {
+  function tagsFor(db: Database.Database, id: number): Tag[] {
+    const s = stmtsFor(db);
+    s.tagsFor ??= db.prepare(
+      `SELECT t.id, t.name FROM tags t
+       JOIN ${junctionTable} jt ON jt.tag_id = t.id
+       WHERE jt.${junctionColumn} = ?
+       ORDER BY t.name COLLATE NOCASE`,
+    );
+    return s.tagsFor.all(id) as Tag[];
+  }
+
+  /**
+   * Batch-fetches tags for every id in `ids` in a single query - used by list() so an N-row result
+   * does one extra query total instead of the N separate ones rowToEntry would otherwise trigger by
+   * calling tagsFor() per row (get()/create()/update() still use tagsFor() directly, since there's
+   * exactly one row to look up and batching buys nothing there). The row->per-entry grouping itself
+   * is groupTagsByEntry() (tagGrouping.ts, unit tested there) - this function is just the SQL query
+   * and hand-off. Not cached like the statements above - the IN (...) placeholder count varies with
+   * how many rows list() returned.
+   */
+  function tagsForMany(db: Database.Database, ids: number[]): Map<number, Tag[]> {
+    if (ids.length === 0) return new Map();
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = db
+      .prepare(
+        `SELECT jt.${junctionColumn} as entryId, t.id, t.name FROM tags t
+         JOIN ${junctionTable} jt ON jt.tag_id = t.id
+         WHERE jt.${junctionColumn} IN (${placeholders})
+         ORDER BY t.name COLLATE NOCASE`,
+      )
+      .all(...ids) as { entryId: number; id: number; name: string }[];
+    return groupTagsByEntry(rows);
+  }
+
+  function rowToEntry(row: Record<string, unknown>, tags: Tag[]): BaseEntryFields & Record<string, unknown> {
     const entry: Record<string, unknown> = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at };
     for (const { dbCol, tsKey } of allColumns) {
       entry[tsKey] = row[dbCol];
     }
-    entry.tags = tagsFor(db, row.id as number);
+    entry.tags = tags;
     return entry as BaseEntryFields & Record<string, unknown>;
   }
 
   function setTags(db: Database.Database, id: number, tagIds: number[] | undefined): void {
     if (tagIds === undefined) return;
-    db.prepare(`DELETE FROM ${junctionTable} WHERE ${junctionColumn} = ?`).run(id);
-    const insert = db.prepare(`INSERT OR IGNORE INTO ${junctionTable} (${junctionColumn}, tag_id) VALUES (?, ?)`);
-    for (const tagId of tagIds) insert.run(id, tagId);
+    const s = stmtsFor(db);
+    s.deleteTags ??= db.prepare(`DELETE FROM ${junctionTable} WHERE ${junctionColumn} = ?`);
+    s.deleteTags.run(id);
+    s.insertTag ??= db.prepare(`INSERT OR IGNORE INTO ${junctionTable} (${junctionColumn}, tag_id) VALUES (?, ?)`);
+    for (const tagId of tagIds) s.insertTag.run(id, tagId);
   }
 
   return {
@@ -82,26 +145,30 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
         // used to re-sort the merged "All" view - keeps ordering consistent between the two.
         .prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${sortCol} COLLATE NOCASE ${sortDir} NULLS LAST`)
         .all(...params) as Record<string, unknown>[];
-      return rows.map((row) => rowToEntry(db, row));
+      const tagsById = tagsForMany(
+        db,
+        rows.map((row) => row.id as number),
+      );
+      return rows.map((row) => rowToEntry(row, tagsById.get(row.id as number) ?? []));
     },
 
     get(id: number) {
       const db = getDb();
-      const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
-      return row ? rowToEntry(db, row) : null;
+      const s = stmtsFor(db);
+      s.getById ??= db.prepare(`SELECT * FROM ${table} WHERE id = ?`);
+      const row = s.getById.get(id) as Record<string, unknown> | undefined;
+      return row ? rowToEntry(row, tagsFor(db, id)) : null;
     },
 
     create(data: EntryInput<T>) {
       const db = getDb();
       const raw = data as unknown as Record<string, unknown>;
-      const dbCols = allColumns.map((c) => c.dbCol);
-      const placeholders = dbCols.map(() => '?').join(', ');
       const values = allColumns.map((c) => raw[c.tsKey] ?? null);
 
       const insert = db.transaction(() => {
-        const result = db
-          .prepare(`INSERT INTO ${table} (${dbCols.join(', ')}) VALUES (${placeholders})`)
-          .run(...values);
+        const s = stmtsFor(db);
+        s.insertRow ??= db.prepare(`INSERT INTO ${table} (${dbCols.join(', ')}) VALUES (${dbCols.map(() => '?').join(', ')})`);
+        const result = s.insertRow.run(...values);
         const id = result.lastInsertRowid as number;
         setTags(db, id, raw.tagIds as number[] | undefined);
         return id;
@@ -120,6 +187,9 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
         if (presentColumns.length) {
           const setClause = presentColumns.map((c) => `${c.dbCol} = ?`).join(', ');
           const values = presentColumns.map((c) => raw[c.tsKey]);
+          // Not cached like get()/create()/delete() below - the SET clause (and therefore the SQL
+          // text) depends on which fields are present in a given partial update, not just this
+          // repo's fixed table shape.
           db.prepare(`UPDATE ${table} SET ${setClause}, updated_at = datetime('now') WHERE id = ?`).run(...values, id);
         }
         setTags(db, id, raw.tagIds as number[] | undefined);
@@ -131,7 +201,9 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
 
     delete(id: number) {
       const db = getDb();
-      db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+      const s = stmtsFor(db);
+      s.deleteById ??= db.prepare(`DELETE FROM ${table} WHERE id = ?`);
+      s.deleteById.run(id);
       // junction rows cascade via ON DELETE CASCADE
     },
   };

@@ -44,33 +44,50 @@ export function buildExportData() {
   };
 }
 
-/** Merges a validated export file into the local library: always inserts new rows, never deletes or overwrites existing data. Tags are matched/created by name. */
+/**
+ * Merges a validated export file into the local library: always inserts new rows, never deletes or
+ * overwrites existing data. Tags are matched/created by name.
+ *
+ * The whole merge runs as one transaction rather than one commit per tag/entry (each
+ * REPOS[mediaType].create() call already opens its own inner transaction - better-sqlite3 nests
+ * these as SAVEPOINTs automatically, so wrapping the outer loop doesn't change what any individual
+ * create() does, just how many times the WAL actually commits). This also makes the whole import
+ * atomic: since every entry passed here has already been validated (by ExportFileSchema.parse() on
+ * the JSON path, or by each CSV parser's own .safeParse() on the Goodreads/Letterboxd path) before
+ * this function is ever called, a failure partway through is expected to be rare - but if one does
+ * happen, the previous behavior would silently leave whatever imported so far in place with no
+ * indication which rows made it and which didn't. Rolling back the whole batch instead keeps the
+ * "strictly additive" guarantee clean: either the import fully succeeds, or the library is left
+ * exactly as it was.
+ */
 export function importLibraryData(data: z.infer<typeof ExportFileSchema>): Record<MediaType, number> & { tags: number } {
-  const summary = { movie: 0, tv: 0, book: 0, album: 0, game: 0, tags: 0 };
+  return getDb().transaction(() => {
+    const summary = { movie: 0, tv: 0, book: 0, album: 0, game: 0, tags: 0 };
 
-  const tagIdByName = new Map<string, number>();
-  function resolveTagId(name: string): number {
-    const key = name.toLowerCase();
-    const existing = tagIdByName.get(key);
-    if (existing !== undefined) return existing;
-    const tag = tagRepo.create(name); // find-or-create, case-insensitive
-    tagIdByName.set(key, tag.id);
-    return tag.id;
-  }
-
-  for (const name of data.tags) {
-    resolveTagId(name);
-    summary.tags++;
-  }
-
-  for (const mediaType of MEDIA_TYPES) {
-    for (const entry of data.entries[mediaType]) {
-      const { tags: tagNames, ...fields } = entry as { tags: string[] } & Record<string, unknown>;
-      const tagIds = tagNames.map(resolveTagId);
-      REPOS[mediaType].create({ ...fields, coverPath: null, tagIds } as never);
-      summary[mediaType]++;
+    const tagIdByName = new Map<string, number>();
+    function resolveTagId(name: string): number {
+      const key = name.toLowerCase();
+      const existing = tagIdByName.get(key);
+      if (existing !== undefined) return existing;
+      const tag = tagRepo.create(name); // find-or-create, case-insensitive
+      tagIdByName.set(key, tag.id);
+      return tag.id;
     }
-  }
 
-  return summary;
+    for (const name of data.tags) {
+      resolveTagId(name);
+      summary.tags++;
+    }
+
+    for (const mediaType of MEDIA_TYPES) {
+      for (const entry of data.entries[mediaType]) {
+        const { tags: tagNames, ...fields } = entry as { tags: string[] } & Record<string, unknown>;
+        const tagIds = tagNames.map(resolveTagId);
+        REPOS[mediaType].create({ ...fields, coverPath: null, tagIds } as never);
+        summary[mediaType]++;
+      }
+    }
+
+    return summary;
+  })();
 }

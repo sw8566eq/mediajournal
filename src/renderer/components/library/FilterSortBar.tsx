@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { EntryFilters, EntryStatus, FilterPreset, MediaType, Tag } from '@shared/types';
 import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER, STATUS_LABELS } from '../../mediaTypeConfig';
 import { toErrorMessage } from '../../errorMessage';
@@ -110,6 +110,27 @@ export function FilterSortBar({
   // afterward organically detaches from it without this needing to track that.
   const [selectedPresetId, setSelectedPresetId] = useState<number | ''>('');
 
+  // The search box types instantly into this local state, but only gets pushed into `filters`
+  // (which triggers the actual list()/IPC round trip - 5 parallel ones, in the "All" view) after a
+  // short pause, rather than on every keystroke. Two effects: one re-seeds this from `filters.search`
+  // whenever it changes for a reason other than our own debounced push (loading a preset, or the
+  // parent clearing filters) - the same "follow an external reset" pattern TextPromptDialog's
+  // initialValue re-seeding uses; the other debounces pushing local edits back out.
+  const [searchInput, setSearchInput] = useState(filters.search ?? '');
+
+  useEffect(() => {
+    setSearchInput(filters.search ?? '');
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (searchInput === (filters.search ?? '')) return; // already in sync - nothing to debounce
+    const timer = setTimeout(() => {
+      onChange({ ...filters, search: searchInput || undefined });
+    }, 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; id: number; name: string } | null>(null);
   const [pendingTagDelete, setPendingTagDelete] = useState<{ id: number; name: string } | null>(null);
   const [pendingTagRename, setPendingTagRename] = useState<{ id: number; name: string } | null>(null);
@@ -167,8 +188,8 @@ export function FilterSortBar({
         type="text"
         className="search-input"
         placeholder="Search title & notes…"
-        value={filters.search ?? ''}
-        onChange={(e) => onChange({ ...filters, search: e.target.value || undefined })}
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
       />
 
       {mediaTypeFilter && (
