@@ -12,9 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22 (current LTS), not 20: jsdom's undici dependency unconditionally calls
+      # node:worker_threads.markAsUncloneable, added in Node 21 - on Node 20 every jsdom-
+      # environment test file (every .test.tsx component test) crashes at module load with
+      # "webidl.util.markAsUncloneable is not a function" before any test in it runs, even
+      # though the tests themselves are fine. Node 20 is also past its own EOL at this point.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       # `npm ci` runs the postinstall step (electron-builder install-app-deps), which rebuilds
