@@ -14,7 +14,12 @@ export function Sidebar({ active, onSelect, onSelectSettings, onSelectStats }: P
       <div className="sidebar-title">Media Journal</div>
       <ul>
         <li>
-          <button type="button" className={active === 'all' ? 'nav-item active' : 'nav-item'} onClick={() => onSelect('all')}>
+          <button
+            type="button"
+            className={active === 'all' ? 'nav-item active' : 'nav-item'}
+            aria-current={active === 'all' ? 'page' : undefined}
+            onClick={() => onSelect('all')}
+          >
             All
           </button>
         </li>
@@ -23,6 +28,7 @@ export function Sidebar({ active, onSelect, onSelectSettings, onSelectStats }: P
             <button
               type="button"
               className={type === active ? 'nav-item active' : 'nav-item'}
+              aria-current={type === active ? 'page' : undefined}
               onClick={() => onSelect(type)}
             >
               {MEDIA_TYPE_LABELS[type]}
@@ -31,12 +37,18 @@ export function Sidebar({ active, onSelect, onSelectSettings, onSelectStats }: P
         ))}
       </ul>
       <div className="sidebar-footer">
-        <button type="button" className={active === 'stats' ? 'nav-item active' : 'nav-item'} onClick={onSelectStats}>
+        <button
+          type="button"
+          className={active === 'stats' ? 'nav-item active' : 'nav-item'}
+          aria-current={active === 'stats' ? 'page' : undefined}
+          onClick={onSelectStats}
+        >
           📊 Stats
         </button>
         <button
           type="button"
           className={active === 'settings' ? 'nav-item active' : 'nav-item'}
+          aria-current={active === 'settings' ? 'page' : undefined}
           onClick={onSelectSettings}
         >
           ⚙ Settings

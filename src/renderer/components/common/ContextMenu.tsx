@@ -34,6 +34,18 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
     setPos({ x: Math.min(x, Math.max(4, maxX)), y: Math.min(y, Math.max(4, maxY)) });
   }, [x, y]);
 
+  // A right-click doesn't move keyboard focus the way a real click does, so without this a
+  // keyboard/screen-reader user who opens the menu some other way (or just presses Tab right
+  // after) lands nowhere in particular. Restores focus to whatever had it before the menu opened
+  // (the card/chip that was right-clicked) on close - this component always unmounts rather than
+  // toggling visibility (see how every caller renders it conditionally), so "on close" here means
+  // "on unmount".
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    ref.current?.querySelector<HTMLButtonElement>('.context-menu-item')?.focus();
+    return () => previouslyFocused?.focus();
+  }, []);
+
   useEffect(() => {
     // mousedown fires before click - without the containment check, clicking a menu item closed
     // (unmounted) the menu on mousedown before its own click event ever got a chance to fire the

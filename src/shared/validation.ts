@@ -140,3 +140,39 @@ export const ExportFileSchema = z.object({
     game: z.array(ExportedEntrySchemaByType.game).default([]),
   }),
 });
+
+// Same shape as ExportedEntrySchemaByType/ExportFileSchema above, but keeps coverPath (still
+// omitting tagIds in favor of portable tag names) - used only by the "full" backup zip, which
+// bundles the actual cover image files alongside data.json, so an imported entry can be re-linked
+// to its restored cover. The plain JSON export/import path above stays metadata-only on purpose
+// (see backup.ts) - don't reuse this schema there.
+export const FullExportedEntrySchemaByType = {
+  movie: MovieCreateSchema.omit({ tagIds: true }).extend(exportTags),
+  tv: TvShowCreateSchema.omit({ tagIds: true }).extend(exportTags),
+  book: BookCreateSchema.omit({ tagIds: true }).extend(exportTags),
+  album: AlbumCreateSchema.omit({ tagIds: true }).extend(exportTags),
+  game: GameCreateSchema.omit({ tagIds: true }).extend(exportTags),
+} satisfies Record<MediaType, z.ZodTypeAny>;
+
+export const FullExportFileSchema = z.object({
+  exportedAt: z.string(),
+  schemaVersion: z.number().int().optional(),
+  tags: z.array(z.string()).default([]),
+  entries: z.object({
+    movie: z.array(FullExportedEntrySchemaByType.movie).default([]),
+    tv: z.array(FullExportedEntrySchemaByType.tv).default([]),
+    book: z.array(FullExportedEntrySchemaByType.book).default([]),
+    album: z.array(FullExportedEntrySchemaByType.album).default([]),
+    game: z.array(FullExportedEntrySchemaByType.game).default([]),
+  }),
+});
+
+// Payload for csvExport:save - the renderer builds the CSV text itself (it already has the
+// filtered/sorted entries and the field-label config needed to format them; see
+// src/renderer/csvExport.ts), main just owns the save-file dialog + disk write, matching every
+// other export path in this app. The size cap is a generous sanity bound, not a real constraint -
+// no personal-library CSV should ever approach it.
+export const CsvExportSchema = z.object({
+  mediaType: z.enum(MEDIA_TYPES),
+  csv: z.string().max(20_000_000),
+});

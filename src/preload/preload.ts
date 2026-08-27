@@ -37,6 +37,8 @@ const api: MediaJournalAPI = {
     pickFromDisk: () => ipcRenderer.invoke(IPC.covers.pickFromDisk),
     importFromUrl: (url: string) => ipcRenderer.invoke(IPC.covers.importFromUrl, url),
     remove: (filename: string) => ipcRenderer.invoke(IPC.covers.remove, filename),
+    findOrphaned: () => ipcRenderer.invoke(IPC.covers.findOrphaned),
+    cleanupOrphaned: () => ipcRenderer.invoke(IPC.covers.cleanupOrphaned),
   },
   externalSearch: {
     search: (mediaType: MediaType, query: string) =>
@@ -45,6 +47,8 @@ const api: MediaJournalAPI = {
   backup: {
     exportLibrary: () => ipcRenderer.invoke(IPC.backup.export),
     importLibrary: () => ipcRenderer.invoke(IPC.backup.import),
+    exportFullBackup: () => ipcRenderer.invoke(IPC.backup.exportFull),
+    importFullBackup: () => ipcRenderer.invoke(IPC.backup.importFull),
   },
   filterPresets: {
     list: () => ipcRenderer.invoke(IPC.filterPresets.list),
@@ -58,6 +62,9 @@ const api: MediaJournalAPI = {
   import: {
     importGoodreads: () => ipcRenderer.invoke(IPC.import.goodreads),
     importLetterboxd: () => ipcRenderer.invoke(IPC.import.letterboxd),
+  },
+  csvExport: {
+    save: (mediaType: MediaType, csv: string) => ipcRenderer.invoke(IPC.csvExport.save, { mediaType, csv }),
   },
 };
 

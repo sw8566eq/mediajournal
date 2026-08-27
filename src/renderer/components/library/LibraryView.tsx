@@ -3,6 +3,9 @@ import type { EntryFilters, FilterPreset, MediaType, NewFilterPreset, Tag } from
 import { useEntries } from '../../hooks/useEntries';
 import { useBulkSelection } from '../../hooks/useBulkSelection';
 import type { BulkResult, EntryRef } from '../../entryActions';
+import { toErrorMessage } from '../../errorMessage';
+import { entriesToCsv } from '../../csvExport';
+import { api } from '../../api/client';
 import { ContextMenu } from '../common/ContextMenu';
 import { EntryCard } from './EntryCard';
 import { FilterSortBar } from './FilterSortBar';
@@ -50,9 +53,24 @@ export function LibraryView({
   const { entries, loading, error, refetch } = useEntries(mediaType, filters);
   const [menu, setMenu] = useState<{ x: number; y: number; id: number } | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
   // A single-type view, so selection is just a plain id set - AllLibraryView needs a composite
   // key instead, since it mixes types.
   const bulk = useBulkSelection<number>([filters, refreshKey]);
+
+  // Exports exactly what's currently on screen (respecting the active filters/sort), not the
+  // whole unfiltered library - so this doubles as a "save this filtered view" export, not just a
+  // full-library dump (that's what Settings > Export Library already covers). Scoped to
+  // LibraryView only, not AllLibraryView - see csvExport.ts for why a combined multi-type export
+  // has no single clean column layout.
+  async function handleExportCsv() {
+    setCsvError(null);
+    try {
+      await api.csvExport.save(mediaType, entriesToCsv(mediaType, entries as unknown as Record<string, unknown>[]));
+    } catch (err) {
+      setCsvError(toErrorMessage(err));
+    }
+  }
 
   useEffect(() => {
     if (refreshKey > 0) refetch();
@@ -88,6 +106,7 @@ export function LibraryView({
         availableGenres={availableGenres}
         availableTags={allTags}
         onAddClick={onAddClick}
+        onExportCsvClick={handleExportCsv}
         presets={{
           items: presets,
           onLoad: (preset) => setFilters(preset.filters),
@@ -119,6 +138,7 @@ export function LibraryView({
         onCancel={bulk.closeBulkTagDialog}
       />
       {bulk.bulkError && <div className="error-banner">{bulk.bulkError}</div>}
+      {csvError && <div className="error-banner">{csvError}</div>}
       {loading && <div className="status-line">Loading…</div>}
       {error && <div className="error-banner">{error}</div>}
       {!loading && !error && entries.length === 0 && (
