@@ -34,6 +34,9 @@ export interface MediaRepositoryConfig<T extends MediaType> {
 }
 
 export interface MediaRepository<T extends MediaType> {
+  /** This repo's underlying table name - the single source of truth for callers (e.g.
+   *  coverCleanup.ts) that need every media table without hardcoding a second copy of the list. */
+  table: string;
   list(filters?: EntryFilters): unknown[];
   get(id: number): unknown | null;
   create(data: EntryInput<T>): unknown;
@@ -135,6 +138,7 @@ export function createMediaRepository<T extends MediaType>(config: MediaReposito
   }
 
   return {
+    table,
     list(filters: EntryFilters = {}) {
       const db = getDb();
       const { clause, params } = buildWhere(filters, { table, junctionTable, junctionColumn, typeColumns });

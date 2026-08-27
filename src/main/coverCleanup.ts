@@ -1,10 +1,17 @@
 import fs from 'node:fs/promises';
 import { getDb } from './db/connection';
 import { coversDir, removeCover } from './covers';
+import { movieRepo } from './db/repositories/movies';
+import { tvShowRepo } from './db/repositories/tvShows';
+import { bookRepo } from './db/repositories/books';
+import { albumRepo } from './db/repositories/albums';
+import { gameRepo } from './db/repositories/games';
 
 // One table per media type (see CLAUDE.md's Database section) - each has its own cover_path
 // column, so "every referenced cover file" means unioning across all 5 rather than one query.
-const MEDIA_TABLES = ['movies', 'tv_shows', 'books', 'albums', 'games'] as const;
+// Read off each repo's own `table` rather than a second hardcoded list, so this can't drift from
+// the repo configs (movies.ts, tvShows.ts, etc.) that are the actual source of truth for table names.
+const MEDIA_TABLES = [movieRepo, tvShowRepo, bookRepo, albumRepo, gameRepo].map((repo) => repo.table);
 
 function referencedCoverFilenames(): Set<string> {
   const db = getDb();

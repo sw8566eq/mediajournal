@@ -6,7 +6,7 @@ import { IPC } from '@shared/ipcChannels';
 import { MEDIA_TYPES } from '@shared/types';
 import { ExportFileSchema, FullExportFileSchema } from '@shared/validation';
 import { buildExportData, buildFullExportData, importLibraryData, importFullLibraryData } from '../backup';
-import { coversDir, importFromBuffer } from '../covers';
+import { coversDir, importFromBuffer, removeCover, MAX_COVER_BYTES } from '../covers';
 import { pickOpenFile, pickSaveFile } from './dialogUtil';
 
 export function registerBackupHandlers(): void {
@@ -88,23 +88,47 @@ export function registerBackupHandlers(): void {
     // backup's own - see covers.ts's importFromBuffer), building the old->new filename map
     // importFullLibraryData needs to rewrite each entry's coverPath. A cover referenced in
     // data.json but missing from the zip, or that fails validation (oversized/unsupported), is
-    // just left uncovered rather than failing the whole import.
-    const coverFileMap = new Map<string, string>();
+    // just left uncovered rather than failing the whole import. Collected into a Set first (rather
+    // than extracting inline in the loop below) so a cover shared by more than one entry is only
+    // extracted once, and so the extractions can run concurrently - each is an independent zip
+    // decompression + file write, with no reason to serialize them.
+    const oldNames = new Set<string>();
     for (const mediaType of MEDIA_TYPES) {
       for (const entry of parsed.entries[mediaType]) {
         const oldName = (entry as { coverPath?: string | null }).coverPath;
-        if (!oldName || coverFileMap.has(oldName)) continue;
+        if (oldName) oldNames.add(oldName);
+      }
+    }
+
+    const coverFileMap = new Map<string, string>();
+    await Promise.all(
+      [...oldNames].map(async (oldName) => {
         const zipEntry = zip.getEntry(`covers/${oldName}`);
-        if (!zipEntry) continue;
+        if (!zipEntry) return;
         try {
+          // header.size is the zip's own declared uncompressed size, straight from the central
+          // directory - checking it here rejects an oversized entry before ever decompressing it.
+          // Without this, getData() below fully materializes the entry into memory first, and
+          // importFromBuffer's own byteLength check only runs after that - so a corrupt/hostile
+          // zip claiming a huge cover doesn't get bounded by the intended per-image memory cap.
+          if (zipEntry.header.size > MAX_COVER_BYTES) return;
           const newName = await importFromBuffer(zipEntry.getData(), path.extname(oldName));
           coverFileMap.set(oldName, newName);
         } catch {
           // corrupt/oversized/unsupported image bytes - skip this one cover, the rest of the import still proceeds
         }
-      }
-    }
+      }),
+    );
 
-    return importFullLibraryData(parsed, coverFileMap);
+    try {
+      return importFullLibraryData(parsed, coverFileMap);
+    } catch (err) {
+      // importFullLibraryData's DB transaction rolls back entirely on failure (see importEntries
+      // in ../backup.ts), but the cover files above were already written to disk before it ran -
+      // clean those up too, so a failed import doesn't leave orphaned files behind and the
+      // documented "entire import lands or nothing does" guarantee holds for covers as well as rows.
+      await Promise.all([...coverFileMap.values()].map((filename) => removeCover(filename)));
+      throw err;
+    }
   });
 }

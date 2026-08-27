@@ -130,7 +130,10 @@ export default function App() {
         onSelectSettings={() => setView({ name: 'settings' })}
         onSelectStats={() => setView({ name: 'stats' })}
       />
-      <main className="app-content">
+      {/* tabIndex={-1}: not part of the tab order, but a valid programmatic focus() target - see
+          ContextMenu.tsx's cleanup, which falls back to focusing this region when the element that
+          originally had focus was itself removed by the menu action (e.g. Edit navigating away). */}
+      <main className="app-content" tabIndex={-1}>
         <ErrorBoundary>
           {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
           {view.name === 'stats' && <StatsView />}

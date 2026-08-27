@@ -3,7 +3,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const MAX_COVER_BYTES = 8 * 1024 * 1024; // 8MB
+// Exported so callers that can cheaply learn a cover's size before fetching its bytes (e.g.
+// backupHandlers.ts's importFull handler, from a zip entry's central-directory header) can reject
+// early instead of always decompressing first and relying on importFromBuffer's own check below.
+export const MAX_COVER_BYTES = 8 * 1024 * 1024; // 8MB
 
 const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',

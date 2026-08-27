@@ -43,7 +43,20 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLButtonElement>('.context-menu-item')?.focus();
-    return () => previouslyFocused?.focus();
+    return () => {
+      // The element that had focus before the menu opened can itself be gone by the time this
+      // runs - a menu action like Edit navigates to a different view, unmounting the right-clicked
+      // card entirely. .focus() on a detached node is a silent no-op, which would otherwise leave
+      // focus stranded on document.body with no indication where a keyboard user landed.
+      if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+        return;
+      }
+      // Fall back to the main content region (a valid focus target via tabIndex={-1} in
+      // App.tsx, not part of the tab order) so focus lands somewhere meaningful in whatever view
+      // replaced this one, rather than at the very top of the page.
+      document.querySelector<HTMLElement>('.app-content')?.focus();
+    };
   }, []);
 
   useEffect(() => {

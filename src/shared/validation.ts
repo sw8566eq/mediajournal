@@ -128,18 +128,26 @@ export const ExportedEntrySchemaByType = {
 export type ExportedBookEntry = z.infer<typeof ExportedEntrySchemaByType.book>;
 export type ExportedMovieEntry = z.infer<typeof ExportedEntrySchemaByType.movie>;
 
-export const ExportFileSchema = z.object({
-  exportedAt: z.string(),
-  schemaVersion: z.number().int().optional(),
-  tags: z.array(z.string()).default([]),
-  entries: z.object({
-    movie: z.array(ExportedEntrySchemaByType.movie).default([]),
-    tv: z.array(ExportedEntrySchemaByType.tv).default([]),
-    book: z.array(ExportedEntrySchemaByType.book).default([]),
-    album: z.array(ExportedEntrySchemaByType.album).default([]),
-    game: z.array(ExportedEntrySchemaByType.game).default([]),
-  }),
-});
+// Builds the export-file wrapper shape (exportedAt/schemaVersion/tags/entries-by-type)
+// generically over whichever per-type entry schema map is passed in - shared by the plain
+// (metadata-only, ExportFileSchema) and full (with coverPath, FullExportFileSchema) formats below
+// so the two file-level shapes can't drift on anything but which per-type entry schema each embeds.
+function exportFileSchema<M extends Record<MediaType, z.ZodTypeAny>>(entrySchemaByType: M) {
+  return z.object({
+    exportedAt: z.string(),
+    schemaVersion: z.number().int().optional(),
+    tags: z.array(z.string()).default([]),
+    entries: z.object({
+      movie: z.array(entrySchemaByType.movie).default([]),
+      tv: z.array(entrySchemaByType.tv).default([]),
+      book: z.array(entrySchemaByType.book).default([]),
+      album: z.array(entrySchemaByType.album).default([]),
+      game: z.array(entrySchemaByType.game).default([]),
+    }),
+  });
+}
+
+export const ExportFileSchema = exportFileSchema(ExportedEntrySchemaByType);
 
 // Same shape as ExportedEntrySchemaByType/ExportFileSchema above, but keeps coverPath (still
 // omitting tagIds in favor of portable tag names) - used only by the "full" backup zip, which
@@ -154,18 +162,7 @@ export const FullExportedEntrySchemaByType = {
   game: GameCreateSchema.omit({ tagIds: true }).extend(exportTags),
 } satisfies Record<MediaType, z.ZodTypeAny>;
 
-export const FullExportFileSchema = z.object({
-  exportedAt: z.string(),
-  schemaVersion: z.number().int().optional(),
-  tags: z.array(z.string()).default([]),
-  entries: z.object({
-    movie: z.array(FullExportedEntrySchemaByType.movie).default([]),
-    tv: z.array(FullExportedEntrySchemaByType.tv).default([]),
-    book: z.array(FullExportedEntrySchemaByType.book).default([]),
-    album: z.array(FullExportedEntrySchemaByType.album).default([]),
-    game: z.array(FullExportedEntrySchemaByType.game).default([]),
-  }),
-});
+export const FullExportFileSchema = exportFileSchema(FullExportedEntrySchemaByType);
 
 // Payload for csvExport:save - the renderer builds the CSV text itself (it already has the
 // filtered/sorted entries and the field-label config needed to format them; see

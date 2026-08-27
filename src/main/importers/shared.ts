@@ -2,6 +2,12 @@
 // and by the DB-touching dedupe step in ../ipc/importHandlers.ts. Zero Electron/DB imports -
 // mirrors db/repositories/queryBuilder.ts's reasoning for staying host-Node-testable.
 import Papa from 'papaparse';
+import { isSameItem } from '@shared/isSameItem';
+
+// Re-exported so existing callers here (letterboxd.ts, importHandlers.ts) can keep importing
+// isSameItem from './shared' alongside these other import-specific helpers, without needing to
+// know it now actually lives in src/shared/ - see isSameItem.ts for the function itself.
+export { isSameItem };
 
 /** What a CSV parser returns: the rows that turned into valid entries, warnings for rows that
  *  didn't (never a throw - one bad row in a large export shouldn't abort the whole import,
@@ -10,24 +16,6 @@ export interface ParsedImport<T> {
   entries: T[];
   warnings: string[];
   skippedInvalid: number;
-}
-
-/**
- * True if two (title, year) pairs represent "the same" item for dedupe purposes: the same title
- * (trimmed, case-insensitive) and, only when *both* sides have a year, the same year too - a year
- * present on only one side doesn't block a match, since title is the primary signal and a missing
- * year is usually just missing metadata rather than a genuine discrepancy.
- *
- * Used two ways: collapsing repeat Letterboxd diary.csv rows for the same rewatched film, and
- * (from importHandlers.ts) detecting CSV rows that already exist in the local library.
- */
-export function isSameItem(
-  a: { title: string; year?: number | null },
-  b: { title: string; year?: number | null },
-): boolean {
-  if (a.title.trim().toLowerCase() !== b.title.trim().toLowerCase()) return false;
-  if (a.year != null && b.year != null) return a.year === b.year;
-  return true;
 }
 
 /**
