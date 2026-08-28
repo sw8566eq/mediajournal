@@ -10,3 +10,6 @@ release
 *.log
 CLAUDE.md
 .claude/
+# Explicit, even though .claude/ above already covers it: the run-mediajournal skill
+# (build/launch/drive harness for agents) is intentionally kept local-only, not committed.
+.claude/skills/run-mediajournal/
