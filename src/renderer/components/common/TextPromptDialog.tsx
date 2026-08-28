@@ -39,7 +39,7 @@ export function TextPromptDialog({ open, title, initialValue = '', submitLabel =
 
   return (
     <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <p>{title}</p>
         <label className="field">
           <span>Name</span>

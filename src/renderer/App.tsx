@@ -6,11 +6,13 @@ import { AllLibraryView } from './components/library/AllLibraryView';
 import { EntryForm, type EntryFormValues } from './components/entry/EntryForm';
 import { EntryDetail } from './components/entry/EntryDetail';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SettingsView } from './components/settings/SettingsView';
 import { StatsView } from './components/stats/StatsView';
 import { useTags } from './hooks/useTags';
 import { useFilterPresets } from './hooks/useFilterPresets';
 import { useSearchShortcut } from './hooks/useSearchShortcut';
+import { useNewEntryShortcut } from './hooks/useNewEntryShortcut';
 import { api } from './api/client';
 import { addTagsToEntry, deleteEntryWithCover, type BulkResult, type EntryRef } from './entryActions';
 
@@ -52,6 +54,12 @@ export default function App() {
     setFormInitial(undefined);
     setView({ name: 'form', mediaType: activeMediaType, entryId: null });
   }
+
+  // 'n' only starts a new entry from the library grid itself - not from inside the form (would
+  // discard an in-progress edit), detail, settings, or stats views.
+  useNewEntryShortcut(() => {
+    if (view.name === 'library') openCreateForm();
+  });
 
   async function openEditForm(mediaType: MediaType, id: number) {
     const entry = await api[mediaType].get(id);
@@ -122,64 +130,69 @@ export default function App() {
         onSelectSettings={() => setView({ name: 'settings' })}
         onSelectStats={() => setView({ name: 'stats' })}
       />
-      <main className="app-content">
-        {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
-        {view.name === 'stats' && <StatsView />}
-        {view.name === 'library' && activeMediaType === 'all' && (
-          <AllLibraryView
-            allTags={tags}
-            onSelectEntry={openDetail}
-            onEditEntry={openEditForm}
-            onDeleteEntry={handleDelete}
-            refreshKey={refreshKey}
-            presets={presets}
-            onSavePreset={createPreset}
-            onDeletePreset={deletePreset}
-            onDeleteTag={deleteTag}
-            onRenameTag={renameTag}
-            onCreateTag={createTag}
-            onBulkDelete={bulkDelete}
-            onBulkAddTag={bulkAddTag}
-          />
-        )}
-        {view.name === 'library' && activeMediaType !== 'all' && (
-          <LibraryView
-            mediaType={activeMediaType}
-            allTags={tags}
-            onSelectEntry={openDetail}
-            onEditEntry={openEditForm}
-            onDeleteEntry={handleDelete}
-            onAddClick={openCreateForm}
-            refreshKey={refreshKey}
-            presets={presets}
-            onSavePreset={createPreset}
-            onDeletePreset={deletePreset}
-            onDeleteTag={deleteTag}
-            onRenameTag={renameTag}
-            onCreateTag={createTag}
-            onBulkDelete={bulkDelete}
-            onBulkAddTag={bulkAddTag}
-          />
-        )}
-        {view.name === 'form' && (
-          <EntryForm
-            mediaType={view.mediaType}
-            initialValues={formInitial}
-            allTags={tags}
-            onCreateTag={createTag}
-            onSubmit={handleSubmit}
-            onCancel={() => setView({ name: 'library' })}
-          />
-        )}
-        {view.name === 'detail' && detailEntry && (
-          <EntryDetail
-            mediaType={view.mediaType}
-            entry={detailEntry}
-            onEdit={() => openEditForm(view.mediaType, view.entryId)}
-            onDelete={() => handleDelete(view.mediaType, view.entryId)}
-            onBack={() => setView({ name: 'library' })}
-          />
-        )}
+      {/* tabIndex={-1}: not part of the tab order, but a valid programmatic focus() target - see
+          ContextMenu.tsx's cleanup, which falls back to focusing this region when the element that
+          originally had focus was itself removed by the menu action (e.g. Edit navigating away). */}
+      <main className="app-content" tabIndex={-1}>
+        <ErrorBoundary>
+          {view.name === 'settings' && <SettingsView onImported={refetchTags} />}
+          {view.name === 'stats' && <StatsView />}
+          {view.name === 'library' && activeMediaType === 'all' && (
+            <AllLibraryView
+              allTags={tags}
+              onSelectEntry={openDetail}
+              onEditEntry={openEditForm}
+              onDeleteEntry={handleDelete}
+              refreshKey={refreshKey}
+              presets={presets}
+              onSavePreset={createPreset}
+              onDeletePreset={deletePreset}
+              onDeleteTag={deleteTag}
+              onRenameTag={renameTag}
+              onCreateTag={createTag}
+              onBulkDelete={bulkDelete}
+              onBulkAddTag={bulkAddTag}
+            />
+          )}
+          {view.name === 'library' && activeMediaType !== 'all' && (
+            <LibraryView
+              mediaType={activeMediaType}
+              allTags={tags}
+              onSelectEntry={openDetail}
+              onEditEntry={openEditForm}
+              onDeleteEntry={handleDelete}
+              onAddClick={openCreateForm}
+              refreshKey={refreshKey}
+              presets={presets}
+              onSavePreset={createPreset}
+              onDeletePreset={deletePreset}
+              onDeleteTag={deleteTag}
+              onRenameTag={renameTag}
+              onCreateTag={createTag}
+              onBulkDelete={bulkDelete}
+              onBulkAddTag={bulkAddTag}
+            />
+          )}
+          {view.name === 'form' && (
+            <EntryForm
+              mediaType={view.mediaType}
+              initialValues={formInitial}
+              allTags={tags}
+              onCreateTag={createTag}
+              onSubmit={handleSubmit}
+              onCancel={() => setView({ name: 'library' })}
+            />
+          )}
+          {view.name === 'detail' && detailEntry && (
+            <EntryDetail
+              mediaType={view.mediaType}
+              entry={detailEntry}
+              onEdit={() => openEditForm(view.mediaType, view.entryId)}
+              onDelete={() => handleDelete(view.mediaType, view.entryId)}
+              onBack={() => setView({ name: 'library' })}
+            />
+          )}
+        </ErrorBoundary>
       </main>
       <ConfirmDialog
         open={pendingDelete !== null}

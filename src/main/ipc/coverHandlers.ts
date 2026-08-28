@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC } from '@shared/ipcChannels';
 import { importFromFilePath, importFromUrl, removeCover } from '../covers';
+import { findOrphanedCovers, cleanupOrphanedCovers } from '../coverCleanup';
 import { pickOpenFile } from './dialogUtil';
 
 export function registerCoverHandlers(): void {
@@ -16,4 +17,8 @@ export function registerCoverHandlers(): void {
   ipcMain.handle(IPC.covers.importFromUrl, (_event, url: string) => importFromUrl(url));
 
   ipcMain.handle(IPC.covers.remove, (_event, filename: string) => removeCover(filename));
+
+  ipcMain.handle(IPC.covers.findOrphaned, () => findOrphanedCovers());
+
+  ipcMain.handle(IPC.covers.cleanupOrphaned, () => cleanupOrphanedCovers());
 }

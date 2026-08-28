@@ -1,5 +1,17 @@
-import type { MediaType, SourceImportSummary } from '@shared/types';
-import { MEDIA_TYPE_LABELS } from './mediaTypeConfig';
+import type { ImportSummary, MediaType, SourceImportSummary } from '@shared/types';
+import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from './mediaTypeConfig';
+
+/**
+ * Formats a JSON backup:import result (see SettingsView.tsx's handleImport/handleImportFull -
+ * both the plain and the full-with-covers backup import return the same ImportSummary shape) into
+ * one human-readable sentence.
+ */
+export function formatImportSummary(summary: ImportSummary): string {
+  const parts = MEDIA_TYPE_ORDER.filter((type) => summary[type] > 0).map((type) => `${summary[type]} ${MEDIA_TYPE_LABELS[type]}`);
+  const tagsPart = summary.tags > 0 ? `${summary.tags} tag${summary.tags === 1 ? '' : 's'}` : null;
+  const allParts = [...parts, tagsPart].filter(Boolean);
+  return allParts.length ? `Imported ${allParts.join(', ')}.` : 'Nothing to import - the file was empty.';
+}
 
 /**
  * Formats a Goodreads/Letterboxd CSV-import result (see SettingsView.tsx) into one human-readable

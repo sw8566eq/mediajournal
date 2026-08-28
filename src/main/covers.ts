@@ -3,7 +3,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const MAX_COVER_BYTES = 8 * 1024 * 1024; // 8MB
+// Exported so callers that can cheaply learn a cover's size before fetching its bytes (e.g.
+// backupHandlers.ts's importFull handler, from a zip entry's central-directory header) can reject
+// early instead of always decompressing first and relying on importFromBuffer's own check below.
+export const MAX_COVER_BYTES = 8 * 1024 * 1024; // 8MB
 
 const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -89,4 +92,24 @@ export async function removeCover(filename: string): Promise<void> {
   } catch {
     // already gone; nothing to do
   }
+}
+
+/** Writes a raw image buffer into app storage under a fresh random filename - the zip-import
+ *  counterpart to importFromFilePath/importFromUrl above, used when restoring a full (with-covers)
+ *  backup where the image bytes come from inside the backup zip rather than disk or a URL. Never
+ *  reuses the backup's own filename, so a restore can't collide with (or overwrite) an existing
+ *  local cover - see backupHandlers.ts's importFull handler. */
+export async function importFromBuffer(buffer: Buffer, ext: string): Promise<string> {
+  const normalizedExt = ext.toLowerCase();
+  if (!ALLOWED_EXTS.has(normalizedExt)) {
+    throw new Error('Unsupported image type. Use JPG, PNG, WEBP, or GIF.');
+  }
+  if (buffer.byteLength > MAX_COVER_BYTES) {
+    throw new Error('Image file is too large (max 8MB).');
+  }
+
+  await ensureCoversDir();
+  const filename = `${randomUUID()}${normalizedExt}`;
+  await fs.writeFile(path.join(coversDir(), filename), buffer);
+  return filename;
 }

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { EntryStatus, ExternalSearchResult, MediaType, Tag } from '@shared/types';
 import { api } from '../../api/client';
 import { toErrorMessage } from '../../errorMessage';
 import { PRIMARY_FIELD } from '../../mediaTypeConfig';
+import { findDuplicate } from '../../duplicateCheck';
 import { RatingInput } from './RatingInput';
 import { StatusSelect } from './StatusSelect';
 import { TagPicker } from './TagPicker';
@@ -67,6 +68,30 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
       isMountedRef.current = false;
     };
   }, []);
+
+  // Non-blocking "you might already have this" warning - fetched once, on mount, only when adding
+  // a new entry (not editing one, where the title matching *itself* would trivially "duplicate").
+  // A plain unfiltered list() rather than any incremental/debounced re-fetch per keystroke: it's
+  // one IPC round trip for the whole session, and comparing against an already-fetched local array
+  // per keystroke is cheap at a personal library's scale (same reasoning CLAUDE.md gives elsewhere
+  // for not adding a server-side query here).
+  const [existingEntries, setExistingEntries] = useState<{ title: string; year?: number | null }[]>([]);
+  useEffect(() => {
+    if (initialValues) return; // editing an existing entry - skip the fetch entirely
+    let cancelled = false;
+    void api[mediaType].list().then((rows) => {
+      if (!cancelled) setExistingEntries(rows as unknown as { title: string; year?: number | null }[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaType]);
+
+  const duplicate = useMemo(
+    () => (initialValues ? undefined : findDuplicate(existingEntries, { title: values.title, year: values.year as number | null })),
+    [initialValues, existingEntries, values.title, values.year],
+  );
 
   function set<K extends keyof EntryFormValues>(key: K, value: EntryFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -135,6 +160,12 @@ export function EntryForm({ mediaType, initialValues, allTags, onCreateTag, onSu
           <span>Title</span>
           <input type="text" required value={values.title} onChange={(e) => set('title', e.target.value)} />
         </label>
+
+        {duplicate && (
+          <div className="warning-banner" role="status">
+            You already have &quot;{duplicate.title}&quot;{duplicate.year ? ` (${duplicate.year})` : ''} in your library.
+          </div>
+        )}
 
         <TypeSpecificFields
           mediaType={mediaType}

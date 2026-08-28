@@ -34,6 +34,48 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
     setPos({ x: Math.min(x, Math.max(4, maxX)), y: Math.min(y, Math.max(4, maxY)) });
   }, [x, y]);
 
+  // A right-click doesn't move keyboard focus the way a real click does, so without this a
+  // keyboard/screen-reader user who opens the menu some other way (or just presses Tab right
+  // after) lands nowhere in particular. Restores focus to whatever had it before the menu opened
+  // (the card/chip that was right-clicked) on close - this component always unmounts rather than
+  // toggling visibility (see how every caller renders it conditionally), so "on close" here means
+  // "on unmount".
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    ref.current?.querySelector<HTMLButtonElement>('.context-menu-item')?.focus();
+    return () => {
+      const focusAppContent = () => document.querySelector<HTMLElement>('.app-content')?.focus();
+      if (!previouslyFocused?.isConnected) {
+        // Already gone by the time this runs - .focus() on a detached node is a silent no-op,
+        // which would otherwise leave focus stranded on document.body. Fall back to the main
+        // content region (a valid focus target via tabIndex={-1} in App.tsx, not part of the tab
+        // order) so focus lands somewhere meaningful in whatever view replaced this one.
+        focusAppContent();
+        return;
+      }
+      previouslyFocused.focus();
+      // previouslyFocused can still be connected right now and yet be removed later anyway: a menu
+      // action like Edit calls an *async* handler (openEditForm awaits an IPC round trip before
+      // ever calling setView) - so the view swap that unmounts the right-clicked card can land many
+      // milliseconds after this cleanup already ran and focused it, not within this same tick. A
+      // fixed delay (a microtask, a timeout) can't bridge a gap of unknown length, so instead of
+      // guessing, react to the actual event: when the browser blurs previouslyFocused, check a tick
+      // later whether anything else claimed focus. If focus reverted to document.body, it was
+      // orphaned (the element was removed with nothing meaningful in its place) - fall back to
+      // .app-content then. If something else has focus (e.g. the next view's own autofocus), leave
+      // it alone - only document.body means nothing claimed it.
+      previouslyFocused.addEventListener(
+        'focusout',
+        () => {
+          queueMicrotask(() => {
+            if (document.activeElement === document.body) focusAppContent();
+          });
+        },
+        { once: true },
+      );
+    };
+  }, []);
+
   useEffect(() => {
     // mousedown fires before click - without the containment check, clicking a menu item closed
     // (unmounted) the menu on mousedown before its own click event ever got a chance to fire the

@@ -27,6 +27,8 @@ export const IPC = {
     pickFromDisk: 'covers:pickFromDisk',
     importFromUrl: 'covers:importFromUrl',
     remove: 'covers:remove',
+    findOrphaned: 'covers:findOrphaned',
+    cleanupOrphaned: 'covers:cleanupOrphaned',
   },
   externalSearch: {
     search: 'externalSearch:search',
@@ -34,6 +36,11 @@ export const IPC = {
   backup: {
     export: 'backup:export',
     import: 'backup:import',
+    exportFull: 'backup:exportFull',
+    importFull: 'backup:importFull',
+  },
+  csvExport: {
+    save: 'csvExport:save',
   },
   filterPresets: {
     list: 'filterPresets:list',

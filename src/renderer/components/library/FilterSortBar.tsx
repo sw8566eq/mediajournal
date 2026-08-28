@@ -13,6 +13,9 @@ interface Props {
   availableTags: Tag[];
   /** Omit to hide the "+ Add Entry" button - e.g. the combined "All" view, where there's no single type to create. */
   onAddClick?: () => void;
+  /** Omit to hide the "Export CSV" button - only LibraryView passes this (see csvExport.ts for why
+   *  the combined "All" view doesn't offer a CSV export). */
+  onExportCsvClick?: () => void;
   /** Only passed by the "All" view: which media types to include in the combined list. */
   mediaTypeFilter?: { activeTypes: MediaType[]; onToggle: (type: MediaType) => void };
   /** Omit to hide the saved-presets controls entirely. */
@@ -100,6 +103,7 @@ export function FilterSortBar({
   availableGenres,
   availableTags,
   onAddClick,
+  onExportCsvClick,
   mediaTypeFilter,
   presets,
   onDeleteTag,
@@ -285,6 +289,7 @@ export function FilterSortBar({
         type="button"
         className="sort-dir"
         title="Toggle sort direction"
+        aria-label={filters.sortDir === 'desc' ? 'Sort descending - click to sort ascending' : 'Sort ascending - click to sort descending'}
         onClick={() => onChange({ ...filters, sortDir: filters.sortDir === 'desc' ? 'asc' : 'desc' })}
       >
         {filters.sortDir === 'desc' ? '↓' : '↑'}
@@ -315,6 +320,7 @@ export function FilterSortBar({
               type="button"
               className="sort-dir"
               title="Delete this preset"
+              aria-label="Delete this preset"
               onClick={() => {
                 presets.onDelete(selectedPresetId);
                 setSelectedPresetId('');
@@ -327,6 +333,12 @@ export function FilterSortBar({
             Save preset…
           </button>
         </div>
+      )}
+
+      {onExportCsvClick && (
+        <button type="button" onClick={onExportCsvClick} title="Export the entries currently shown to a CSV file">
+          Export CSV
+        </button>
       )}
 
       {onAddClick && (

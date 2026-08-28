@@ -135,6 +135,13 @@ export interface CoverAPI {
   importFromUrl: (url: string) => Promise<string>;
   /** Best-effort delete of a previously stored cover file. */
   remove: (filename: string) => Promise<void>;
+  /** Cover files on disk not referenced by any entry's coverPath across all 5 media tables - can
+   *  accumulate from a crash mid-save or a hand-edited DB. Returns the filenames, for a caller to
+   *  show a count before deleting anything. */
+  findOrphaned: () => Promise<string[]>;
+  /** Deletes every currently-orphaned cover file (re-scanning immediately before deleting, so a
+   *  file that became referenced in between isn't removed out from under it). Returns how many were removed. */
+  cleanupOrphaned: () => Promise<{ deleted: number }>;
 }
 
 /** One normalized result from an external media database search (TMDB/Open Library/RAWG/MusicBrainz/...). */
@@ -186,6 +193,19 @@ export interface BackupAPI {
   exportLibrary: () => Promise<string | null>;
   /** Opens an open-file dialog and merges a previously-exported JSON file into the library - always adds new rows, never deletes or overwrites existing data. Returns null if canceled. */
   importLibrary: () => Promise<ImportSummary | null>;
+  /** Same as exportLibrary, but to a .zip bundling data.json plus every referenced cover image file
+   *  - a true full-fidelity backup, at the cost of a larger file. Returns the chosen path, or null if canceled. */
+  exportFullBackup: () => Promise<string | null>;
+  /** Same as importLibrary, but for a .zip produced by exportFullBackup - restored cover images are
+   *  written under freshly-generated local filenames (never the backup's own), same additive-only
+   *  guarantee as importLibrary. Returns null if canceled. */
+  importFullBackup: () => Promise<ImportSummary | null>;
+}
+
+export interface CsvExportAPI {
+  /** Opens a save dialog and writes an already-built CSV string (see src/renderer/csvExport.ts) to
+   *  disk. Returns the chosen path, or null if canceled. */
+  save: (mediaType: MediaType, csv: string) => Promise<string | null>;
 }
 
 export interface GenreCount {
@@ -238,4 +258,5 @@ export interface MediaJournalAPI {
   filterPresets: FilterPresetAPI;
   genres: GenreAPI;
   import: ImportAPI;
+  csvExport: CsvExportAPI;
 }

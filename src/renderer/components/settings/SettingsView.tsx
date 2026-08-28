@@ -2,11 +2,11 @@ import { useState } from 'react';
 import type { MediaType, SourceImportSummary } from '@shared/types';
 import { api } from '../../api/client';
 import { toErrorMessage } from '../../errorMessage';
-import { MEDIA_TYPE_LABELS, MEDIA_TYPE_ORDER } from '../../mediaTypeConfig';
 import { useTheme } from '../../hooks/useTheme';
 import type { Theme } from '../../theme';
 import { GenreManager } from './GenreManager';
-import { formatSourceImportSummary } from '../../importSummary';
+import { formatSourceImportSummary, formatImportSummary } from '../../importSummary';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface Props {
   /** Called after a successful import so the caller can refresh anything cached from before (e.g. the shared tag list). */
@@ -25,6 +25,11 @@ export function SettingsView({ onImported }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  // Separate from the Data section's busy/message/error/warnings above (a "check, then confirm,
+  // then delete" flow doesn't fit that single-action shell) but still reuses runAction for the
+  // scan/delete calls themselves.
+  const [orphanedCovers, setOrphanedCovers] = useState<string[] | null>(null);
+  const [confirmingCleanup, setConfirmingCleanup] = useState(false);
 
   // Every action below (export, import, and the two CSV imports) shares this exact reset/
   // try/catch/finally shell - factored once so each handler only states what's actually distinct
@@ -54,14 +59,50 @@ export function SettingsView({ onImported }: Props) {
     return runAction(async () => {
       const summary = await api.backup.importLibrary();
       if (summary) {
-        const parts = MEDIA_TYPE_ORDER.filter((type) => summary[type] > 0).map(
-          (type) => `${summary[type]} ${MEDIA_TYPE_LABELS[type]}`,
-        );
-        const tagsPart = summary.tags > 0 ? `${summary.tags} tag${summary.tags === 1 ? '' : 's'}` : null;
-        const allParts = [...parts, tagsPart].filter(Boolean);
-        setMessage(allParts.length ? `Imported ${allParts.join(', ')}.` : 'Nothing to import - the file was empty.');
+        setMessage(formatImportSummary(summary));
         onImported();
       }
+    });
+  }
+
+  function handleExportFull() {
+    return runAction(async () => {
+      const filePath = await api.backup.exportFullBackup();
+      if (filePath) setMessage(`Exported to ${filePath}`);
+    });
+  }
+
+  function handleImportFull() {
+    return runAction(async () => {
+      const summary = await api.backup.importFullBackup();
+      if (summary) {
+        setMessage(formatImportSummary(summary));
+        onImported();
+      }
+    });
+  }
+
+  // Two-step: scan first (no confirmation needed, nothing's deleted yet), then confirm before
+  // actually removing anything - deleting files is not undoable, unlike every other action in this
+  // section.
+  function handleCheckOrphanedCovers() {
+    return runAction(async () => {
+      const files = await api.covers.findOrphaned();
+      if (files.length === 0) {
+        setMessage('No unused cover images found.');
+      } else {
+        setOrphanedCovers(files);
+        setConfirmingCleanup(true);
+      }
+    });
+  }
+
+  function confirmCleanupOrphanedCovers() {
+    setConfirmingCleanup(false);
+    return runAction(async () => {
+      const { deleted } = await api.covers.cleanupOrphaned();
+      setMessage(`Deleted ${deleted} unused cover image${deleted === 1 ? '' : 's'}.`);
+      setOrphanedCovers(null);
     });
   }
 
@@ -108,8 +149,9 @@ export function SettingsView({ onImported }: Props) {
         <h3>Data</h3>
         <p className="hint">
           Export your library to a JSON file, or import a previously-exported file. Importing always adds new
-          entries - it never deletes or overwrites what&apos;s already here. Cover art isn&apos;t included in exports, only
-          your entries, ratings, notes, and tags.
+          entries - it never deletes or overwrites what&apos;s already here. The plain export is metadata only
+          (entries, ratings, notes, and tags); &quot;Full Backup&quot; also bundles your actual cover art images, as a
+          single, larger .zip file.
         </p>
 
         {message && <div className="success-banner">{message}</div>}
@@ -134,6 +176,12 @@ export function SettingsView({ onImported }: Props) {
           <button type="button" onClick={handleImport} disabled={busy}>
             Import Library
           </button>
+          <button type="button" onClick={handleExportFull} disabled={busy}>
+            Export Full Backup (.zip)
+          </button>
+          <button type="button" onClick={handleImportFull} disabled={busy}>
+            Import Full Backup (.zip)
+          </button>
         </div>
 
         <h4>Import from other trackers</h4>
@@ -152,6 +200,30 @@ export function SettingsView({ onImported }: Props) {
           </button>
         </div>
       </section>
+
+      <section className="settings-section">
+        <h3>Maintenance</h3>
+        <p className="hint">
+          Cover art files are normally cleaned up automatically when an entry is deleted or its cover is replaced.
+          If one was ever left behind - e.g. by a crash mid-save - this finds and removes any cover image no
+          longer used by an entry.
+        </p>
+        <div className="settings-actions">
+          <button type="button" onClick={handleCheckOrphanedCovers} disabled={busy}>
+            Clean Up Unused Cover Images
+          </button>
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={confirmingCleanup}
+        message={`Delete ${orphanedCovers?.length ?? 0} unused cover image${orphanedCovers?.length === 1 ? '' : 's'}? This cannot be undone.`}
+        onConfirm={confirmCleanupOrphanedCovers}
+        onCancel={() => {
+          setConfirmingCleanup(false);
+          setOrphanedCovers(null);
+        }}
+      />
 
       <GenreManager />
     </div>
