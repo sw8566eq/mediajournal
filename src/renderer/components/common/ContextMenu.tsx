@@ -44,18 +44,35 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLButtonElement>('.context-menu-item')?.focus();
     return () => {
-      // The element that had focus before the menu opened can itself be gone by the time this
-      // runs - a menu action like Edit navigates to a different view, unmounting the right-clicked
-      // card entirely. .focus() on a detached node is a silent no-op, which would otherwise leave
-      // focus stranded on document.body with no indication where a keyboard user landed.
-      if (previouslyFocused?.isConnected) {
-        previouslyFocused.focus();
+      const focusAppContent = () => document.querySelector<HTMLElement>('.app-content')?.focus();
+      if (!previouslyFocused?.isConnected) {
+        // Already gone by the time this runs - .focus() on a detached node is a silent no-op,
+        // which would otherwise leave focus stranded on document.body. Fall back to the main
+        // content region (a valid focus target via tabIndex={-1} in App.tsx, not part of the tab
+        // order) so focus lands somewhere meaningful in whatever view replaced this one.
+        focusAppContent();
         return;
       }
-      // Fall back to the main content region (a valid focus target via tabIndex={-1} in
-      // App.tsx, not part of the tab order) so focus lands somewhere meaningful in whatever view
-      // replaced this one, rather than at the very top of the page.
-      document.querySelector<HTMLElement>('.app-content')?.focus();
+      previouslyFocused.focus();
+      // previouslyFocused can still be connected right now and yet be removed later anyway: a menu
+      // action like Edit calls an *async* handler (openEditForm awaits an IPC round trip before
+      // ever calling setView) - so the view swap that unmounts the right-clicked card can land many
+      // milliseconds after this cleanup already ran and focused it, not within this same tick. A
+      // fixed delay (a microtask, a timeout) can't bridge a gap of unknown length, so instead of
+      // guessing, react to the actual event: when the browser blurs previouslyFocused, check a tick
+      // later whether anything else claimed focus. If focus reverted to document.body, it was
+      // orphaned (the element was removed with nothing meaningful in its place) - fall back to
+      // .app-content then. If something else has focus (e.g. the next view's own autofocus), leave
+      // it alone - only document.body means nothing claimed it.
+      previouslyFocused.addEventListener(
+        'focusout',
+        () => {
+          queueMicrotask(() => {
+            if (document.activeElement === document.body) focusAppContent();
+          });
+        },
+        { once: true },
+      );
     };
   }, []);
 
