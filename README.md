@@ -13,7 +13,7 @@ Prebuilt Linux AppImage: see [Releases](https://github.com/sw8566eq/mediajournal
 - Separate library views for Movies, TV, Books, Music, and Games, plus a combined "All" view spanning every type at once
 - 10-point rating scale (e.g. `8.2/10`), status tracking (Planned / In Progress, or left blank to mean finished), and free-text notes per entry
 - Shared tags across all media types — right-click a tag chip to rename or delete it — plus a free-text genre per entry, with a Genre manager in Settings to merge inconsistent casing/typos across your whole library
-- Cover art, either picked from a local file or fetched from a URL, with autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys
+- Cover art, either picked from a local file or fetched from a URL, with autofill from an external database by title — currently live for Books (Open Library) and Music (MusicBrainz); Movies/TV (TMDB) and Games (RAWG) are wired up in the architecture but waiting on API keys. Unused cover files are cleaned up automatically, with a manual sweep available in Settings for anything left behind
 - Filter by status, rating range, genre, tags, and year; full-text search by title/notes; sort by multiple fields — save any combination as a named preset and reload it later
 - Right-click an entry card for quick Edit/Delete, or multi-select entries for bulk delete/tag
 - A non-blocking warning when adding an entry that looks like one you already have
